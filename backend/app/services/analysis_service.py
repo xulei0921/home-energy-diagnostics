@@ -1,9 +1,11 @@
 import json
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from typing import List, Tuple
-import numpy as np
+from datetime import datetime, timedelta, date
 
+from sqlalchemy import extract, case, func
+from sqlalchemy.orm import Session
+from typing import List, Tuple, Optional
+import numpy as np
+from . import data_processing
 from .. import schemas, models
 from .ai_service import AISuggestionService
 
@@ -13,28 +15,120 @@ class EnergyAnalysisService:
     def get_energy_trend(
         db: Session,
         user_id: int,
-        bill_type: schemas.BillType,
-        limit: int = 12
+        period: schemas.AnalysisPeriod,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+        bill_type: Optional[schemas.BillType] = None,
+        # limit: int = 12
     ) -> List[schemas.EnergyTrendItem]:
-        """获取能耗趋势数据（最近N个月）"""
+        """获取能耗趋势数据"""
+
+        analysis_start_date, analysis_end_date = data_processing.get_date_range_for_period(period, start_date, end_date)
+
+        if period == schemas.AnalysisPeriod.monthly:
+            if bill_type is None:
+                bills = db.query(models.EnergyBill).filter(
+                    models.EnergyBill.user_id == user_id,
+                    models.EnergyBill.bill_date >= analysis_start_date,
+                    models.EnergyBill.bill_date <= analysis_end_date
+                ).order_by(models.EnergyBill.bill_date.desc()).all()
+
+            else:
+                bills = db.query(models.EnergyBill).filter(
+                    models.EnergyBill.user_id == user_id,
+                    models.EnergyBill.bill_type == bill_type,
+                    models.EnergyBill.bill_date >= analysis_start_date,
+                    models.EnergyBill.bill_date <= analysis_end_date
+                ).order_by(models.EnergyBill.bill_date.desc()).all()
+
+            bills.reverse()
+
+            trend_data = [
+                schemas.EnergyTrendItem(
+                    bill_type=bill.bill_type,
+                    bill_date=bill.bill_date,
+                    usage=bill.usage,
+                    amount=bill.amount
+                ) for bill in bills
+            ]
+            return trend_data
+
+        # elif period == schemas.AnalysisPeriod.quarter:
+        #     year = date.today().year
+        #     quarter_expr = case(
+        #         [
+        #             (extract('month', models.EnergyBill.bill_date).between(1, 3), 1),
+        #             (extract('month', models.EnergyBill.bill_date).between(4, 6), 2),
+        #             (extract('month', models.EnergyBill.bill_date).between(7, 9), 3),
+        #             (extract('month', models.EnergyBill.bill_date).between(10, 12), 4),
+        #         ],
+        #         else_ = 0
+        #     ).label('quarter')
+        #
+        #     # 单次查询所有季度汇总
+        #     if bill_type is None:
+        #         quarter_data = db.query(
+        #             quarter_expr,
+        #             func.sum(models.EnergyBill.usage).label('total_usage'),
+        #             func.sum(models.EnergyBill.amount).label('total_cost'),
+        #         ).filter(
+        #             models.EnergyBill.user_id == user_id,
+        #             extract('year', models.EnergyBill.bill_date) == year
+        #         ).group_by(
+        #             quarter_expr
+        #         ).order_by(
+        #             quarter_expr
+        #         ).all()
+        #     else:
+        #         quarter_data = db.query(
+        #             quarter_expr,
+        #             func.sum(models.EnergyBill.usage).label('total_usage'),
+        #             func.sum(models.EnergyBill.amount).label('total_cost'),
+        #         ).filter(
+        #             models.EnergyBill.user_id == user_id,
+        #             models.EnergyBill.bill_type == bill_type,
+        #             extract('year', models.EnergyBill.bill_date) == year
+        #         ).group_by(
+        #             quarter_expr
+        #         ).order_by(
+        #             quarter_expr
+        #         ).all()
+        #
+        #     trend_data = [
+        #         schemas.EnergyTrendItem(
+        #             bill_type=bill.bill_type,
+        #             bill_date=bill.bill_date,
+        #             usage=bill.usage,
+        #             amount=bill.amount
+        #         ) for bill in quarter_data
+        #     ]
+        #     return trend_data
+
         # 按账单日期降序排序，取最近limit条
-        bills = db.query(models.EnergyBill).filter(
-            models.EnergyBill.user_id == user_id,
-            models.EnergyBill.bill_type == bill_type
-        ).order_by(models.EnergyBill.bill_date.desc()).limit(limit).all()
+        # if bill_type is None:
+        #     bills = db.query(models.EnergyBill).filter(
+        #         models.EnergyBill.user_id == user_id
+        #     ).order_by(models.EnergyBill.bill_date.desc()).limit(limit).all()
+        #
+        # else:
+        #     bills = db.query(models.EnergyBill).filter(
+        #         models.EnergyBill.user_id == user_id,
+        #         models.EnergyBill.bill_type == bill_type
+        #     ).order_by(models.EnergyBill.bill_date.desc()).limit(limit).all()
 
         # 反转顺序（按时间升序）
-        bills.reverse()
-
-        trend_data = [
-            schemas.EnergyTrendItem(
-                bill_date=bill.bill_date,
-                usage=bill.usage,
-                amount=bill.amount,
-                month=bill.bill_date.strftime("%Y-%m")
-            ) for bill in bills
-        ]
-        return trend_data
+        # bills.reverse()
+        #
+        # trend_data = [
+        #     schemas.EnergyTrendItem(
+        #         bill_type=bill.bill_type,
+        #         bill_date=bill.bill_date,
+        #         usage=bill.usage,
+        #         amount=bill.amount,
+        #         month=bill.bill_date.strftime("%Y-%m")
+        #     ) for bill in bills
+        # ]
+        # return trend_data
 
     @staticmethod
     def calculate_comparison(trend_data: List[schemas.EnergyTrendItem]) -> schemas.EnergyComparison:

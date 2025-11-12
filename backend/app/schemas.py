@@ -15,6 +15,13 @@ class DeviceType(str, Enum):
     gas = "gas"
     water = "water"
 
+# 新增分析时间段枚举
+class AnalysisPeriod(str, Enum):
+    monthly = "monthly"    # 月度
+    quarter = "quarter"    # 季度
+    annual = "annual"      # 年度
+    custom = "custom"      # 自定义
+
 # 用户模型 - 基础
 class UserBase(BaseModel):
     username: str
@@ -181,10 +188,12 @@ class EnergySavingSuggestionResponse(EnergySavingSuggestionBase):
 
 # 分析结构响应
 class EnergyTrendItem(BaseModel):
+    bill_type: BillType
     bill_date: date
     usage: float
     amount: float
-    month: str
+    year: Optional[str] = None
+    month: Optional[str] = None
 
 class EnergyComparison(BaseModel):
     current_usage: float
