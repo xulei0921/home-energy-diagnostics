@@ -198,8 +198,10 @@ class EnergyTrendItem(BaseModel):
 class EnergyComparison(BaseModel):
     current_usage: float
     previous_usage: Optional[float] = None
-    yoy_rate: Optional[float] = None  # 同比增长率(%)
-    mom_rate: Optional[float] = None  # 环比增长率(%)
+    usage_yoy_rate: Optional[float] = None  # 用电量同比增长率(%)
+    usage_mom_rate: Optional[float] = None  # 用电量环比增长率(%)
+    amount_yoy_rate: Optional[float] = None # 能耗费用同比增长率(%)
+    amount_mom_rate: Optional[float] = None # 能耗费用环比增长率(%)
     is_abnormal: bool  # 是否异常(增长率超过30%)
 
 class DeviceEnergyConsumption(BaseModel):
@@ -213,6 +215,11 @@ class AnalysisResult(BaseModel):
     comparison: EnergyComparison
     device_consumption: List[DeviceEnergyConsumption]
     suggestions: List[EnergySavingSuggestionResponse]
+
+class LatestEnergyDistribution(BaseModel):
+    electricity_amount: Optional[float] = 0
+    gas_amount: Optional[float] = 0
+    water_amount: Optional[float] = 0
 
 # 登录请求
 class LoginRequest(BaseModel):

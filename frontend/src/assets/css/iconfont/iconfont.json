@@ -1,0 +1,65 @@
+{
+  "id": "5065137",
+  "name": "家庭能耗体检与节能建议系统",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "1727366",
+      "name": "27账单",
+      "font_class": "zhangdan",
+      "unicode": "e89e",
+      "unicode_decimal": 59550
+    },
+    {
+      "icon_id": "6918456",
+      "name": "插头",
+      "font_class": "chatou1",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
+      "icon_id": "3724735",
+      "name": "设置",
+      "font_class": "shezhi",
+      "unicode": "e7d7",
+      "unicode_decimal": 59351
+    },
+    {
+      "icon_id": "14095291",
+      "name": "仪表盘",
+      "font_class": "yibiaopan",
+      "unicode": "e788",
+      "unicode_decimal": 59272
+    },
+    {
+      "icon_id": "8436313",
+      "name": "电",
+      "font_class": "dian",
+      "unicode": "e69c",
+      "unicode_decimal": 59036
+    },
+    {
+      "icon_id": "10330038",
+      "name": "water",
+      "font_class": "water",
+      "unicode": "e642",
+      "unicode_decimal": 58946
+    },
+    {
+      "icon_id": "22912020",
+      "name": "燃气",
+      "font_class": "ranqi",
+      "unicode": "e8a3",
+      "unicode_decimal": 59555
+    },
+    {
+      "icon_id": "43444304",
+      "name": "插头",
+      "font_class": "chatou",
+      "unicode": "e7ef",
+      "unicode_decimal": 59375
+    }
+  ]
+}

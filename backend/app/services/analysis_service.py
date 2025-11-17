@@ -18,117 +18,143 @@ class EnergyAnalysisService:
         period: schemas.AnalysisPeriod,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
-        bill_type: Optional[schemas.BillType] = None,
-        # limit: int = 12
+        bill_type: Optional[schemas.BillType] = None
     ) -> List[schemas.EnergyTrendItem]:
-        """获取能耗趋势数据"""
 
+        """获取能耗趋势数据"""
         analysis_start_date, analysis_end_date = data_processing.get_date_range_for_period(period, start_date, end_date)
 
         if period == schemas.AnalysisPeriod.monthly:
-            if bill_type is None:
-                bills = db.query(models.EnergyBill).filter(
-                    models.EnergyBill.user_id == user_id,
-                    models.EnergyBill.bill_date >= analysis_start_date,
-                    models.EnergyBill.bill_date <= analysis_end_date
-                ).order_by(models.EnergyBill.bill_date.desc()).all()
+            bills = db.query(models.EnergyBill).filter(
+                models.EnergyBill.user_id == user_id,
+                models.EnergyBill.bill_date >= analysis_start_date,
+                models.EnergyBill.bill_date <= analysis_end_date
+            )
 
-            else:
-                bills = db.query(models.EnergyBill).filter(
-                    models.EnergyBill.user_id == user_id,
-                    models.EnergyBill.bill_type == bill_type,
-                    models.EnergyBill.bill_date >= analysis_start_date,
-                    models.EnergyBill.bill_date <= analysis_end_date
-                ).order_by(models.EnergyBill.bill_date.desc()).all()
+            if bill_type:
+                bills = bills.filter(models.EnergyBill.bill_type == bill_type)
 
-            bills.reverse()
+            bills = bills.order_by(models.EnergyBill.bill_type, models.EnergyBill.bill_date).all()
 
             trend_data = [
                 schemas.EnergyTrendItem(
                     bill_type=bill.bill_type,
                     bill_date=bill.bill_date,
                     usage=bill.usage,
-                    amount=bill.amount
+                    amount=bill.amount,
+                    year=str(bill.bill_date.year),
+                    month=str(bill.bill_date.month)
                 ) for bill in bills
             ]
             return trend_data
 
-        # elif period == schemas.AnalysisPeriod.quarter:
-        #     year = date.today().year
-        #     quarter_expr = case(
-        #         [
-        #             (extract('month', models.EnergyBill.bill_date).between(1, 3), 1),
-        #             (extract('month', models.EnergyBill.bill_date).between(4, 6), 2),
-        #             (extract('month', models.EnergyBill.bill_date).between(7, 9), 3),
-        #             (extract('month', models.EnergyBill.bill_date).between(10, 12), 4),
-        #         ],
-        #         else_ = 0
-        #     ).label('quarter')
-        #
-        #     # 单次查询所有季度汇总
-        #     if bill_type is None:
-        #         quarter_data = db.query(
-        #             quarter_expr,
-        #             func.sum(models.EnergyBill.usage).label('total_usage'),
-        #             func.sum(models.EnergyBill.amount).label('total_cost'),
-        #         ).filter(
-        #             models.EnergyBill.user_id == user_id,
-        #             extract('year', models.EnergyBill.bill_date) == year
-        #         ).group_by(
-        #             quarter_expr
-        #         ).order_by(
-        #             quarter_expr
-        #         ).all()
-        #     else:
-        #         quarter_data = db.query(
-        #             quarter_expr,
-        #             func.sum(models.EnergyBill.usage).label('total_usage'),
-        #             func.sum(models.EnergyBill.amount).label('total_cost'),
-        #         ).filter(
-        #             models.EnergyBill.user_id == user_id,
-        #             models.EnergyBill.bill_type == bill_type,
-        #             extract('year', models.EnergyBill.bill_date) == year
-        #         ).group_by(
-        #             quarter_expr
-        #         ).order_by(
-        #             quarter_expr
-        #         ).all()
-        #
-        #     trend_data = [
-        #         schemas.EnergyTrendItem(
-        #             bill_type=bill.bill_type,
-        #             bill_date=bill.bill_date,
-        #             usage=bill.usage,
-        #             amount=bill.amount
-        #         ) for bill in quarter_data
-        #     ]
-        #     return trend_data
+        elif period == schemas.AnalysisPeriod.quarter:
+            # 基础查询条件
+            query = db.query(
+                models.EnergyBill.bill_type,
+                # 季度标识（1-4）
+                case(
+                    (extract('month', models.EnergyBill.bill_date).between(1, 3), 1),
+                    (extract('month', models.EnergyBill.bill_date).between(4, 6), 2),
+                    (extract('month', models.EnergyBill.bill_date).between(7, 9), 3),
+                    (extract('month', models.EnergyBill.bill_date).between(10, 12), 4),
+                ).label('quarter'),
+                # --- 核心修正：使用 MySQL 兼容的函数替代 date_trunc ---
+                # 季度起始日期（Q1: 01-01, Q2: 04-01, Q3: 07-01, Q4: 10-01）
+                case(
+                    # Q1: 年份的第一天
+                    (extract('month', models.EnergyBill.bill_date).between(1, 3),
+                     func.makedate(func.year(models.EnergyBill.bill_date), 1)),
+                    # Q2: 年份的第91天 (4月1日)
+                    (extract('month', models.EnergyBill.bill_date).between(4, 6),
+                     func.makedate(func.year(models.EnergyBill.bill_date), 91)),
+                    # Q3: 年份的第182天 (7月1日)
+                    (extract('month', models.EnergyBill.bill_date).between(7, 9),
+                     func.makedate(func.year(models.EnergyBill.bill_date), 182)),
+                    # Q4: 年份的第274天 (10月1日)
+                    (extract('month', models.EnergyBill.bill_date).between(10, 12),
+                     func.makedate(func.year(models.EnergyBill.bill_date), 274)),
+                ).label('quarter_start'),
+                # --- 修正结束 ---
+                # 汇总季度用量和金额
+                func.sum(models.EnergyBill.usage).label('total_usage'),
+                func.sum(models.EnergyBill.amount).label('total_amount'),
+                extract('year', models.EnergyBill.bill_date).label('bill_year')
+            ).filter(
+                models.EnergyBill.user_id == user_id,
+                models.EnergyBill.bill_date >= analysis_start_date,
+                models.EnergyBill.bill_date <= analysis_end_date
+            )
 
-        # 按账单日期降序排序，取最近limit条
-        # if bill_type is None:
-        #     bills = db.query(models.EnergyBill).filter(
-        #         models.EnergyBill.user_id == user_id
-        #     ).order_by(models.EnergyBill.bill_date.desc()).limit(limit).all()
-        #
-        # else:
-        #     bills = db.query(models.EnergyBill).filter(
-        #         models.EnergyBill.user_id == user_id,
-        #         models.EnergyBill.bill_type == bill_type
-        #     ).order_by(models.EnergyBill.bill_date.desc()).limit(limit).all()
+            # 按账单类型筛选
+            if bill_type:
+                query = query.filter(models.EnergyBill.bill_type == bill_type)
 
-        # 反转顺序（按时间升序）
-        # bills.reverse()
-        #
-        # trend_data = [
-        #     schemas.EnergyTrendItem(
-        #         bill_type=bill.bill_type,
-        #         bill_date=bill.bill_date,
-        #         usage=bill.usage,
-        #         amount=bill.amount,
-        #         month=bill.bill_date.strftime("%Y-%m")
-        #     ) for bill in bills
-        # ]
-        # return trend_data
+            # 按季度和账单类型分组
+            query = query.group_by(
+                'bill_type', 'quarter', 'quarter_start', 'bill_year'
+            ).order_by('bill_type', 'bill_year', 'quarter')
+
+            # 执行查询并处理结果
+            quarter_data = query.all()
+
+            # 转换为EnergyTrendItem格式
+            trend_data = []
+            for item in quarter_data:
+                quarter_start_date = item.quarter_start if item.quarter_start else None
+
+                trend_data.append(
+                    schemas.EnergyTrendItem(
+                        bill_type=item.bill_type,
+                        bill_date=quarter_start_date,
+                        usage=round(item.total_usage, 2),
+                        amount=round(item.total_amount, 2),
+                        year=str(item.bill_year) if item.bill_year else None,
+                        month=None
+                    )
+                )
+
+            return trend_data
+
+        elif period == schemas.AnalysisPeriod.annual:
+            # 基础查询条件
+            query = db.query(
+                models.EnergyBill.bill_type,
+                func.sum(models.EnergyBill.usage).label('total_usage'),
+                func.sum(models.EnergyBill.amount).label('total_amount'),
+                extract('year', models.EnergyBill.bill_date).label('bill_year')
+            ).filter(
+                models.EnergyBill.user_id == user_id,
+                models.EnergyBill.bill_date <= analysis_end_date
+            )
+
+            # 按账单类型筛选
+            if bill_type:
+                query = query.filter(models.EnergyBill.bill_type == bill_type)
+
+            # 按照年份和账单类型分组
+            query = query.group_by(
+                'bill_type', 'bill_year'
+            ).order_by('bill_type', 'bill_year')
+
+            # 执行查询并处理结果
+            year_data = query.all()
+            trend_data = []
+            for item in year_data:
+                # 构造年度起始日期 YYYY-01-01
+                year_start_date = date(int(item.bill_year),1, 1) if item.bill_year else None
+
+                trend_data.append(
+                    schemas.EnergyTrendItem(
+                        bill_type=item.bill_type,
+                        bill_date=year_start_date,
+                        usage=round(item.total_usage, 2),
+                        amount=round(item.total_amount, 2),
+                        year=str(item.bill_year) if item.bill_year else None,
+                        month=None
+                    )
+                )
+            return trend_data
 
     @staticmethod
     def calculate_comparison(trend_data: List[schemas.EnergyTrendItem]) -> schemas.EnergyComparison:
@@ -137,40 +163,51 @@ class EnergyAnalysisService:
             return schemas.EnergyComparison(
                 current_usage=0,
                 previous_usage=None,
-                yoy_rate=None,
-                mom_rate=None,
+                usage_yoy_rate=None,
+                usage_mom_rate=None,
+                amount_yoy_rate=None,
+                amount_mom_rate=None,
                 is_abnormal=False
             )
 
         # 当前最新数据
         current = trend_data[-1]
         current_usage = current.usage
+        current_amount = current.amount
 
         # 环比（与上一个月比较）
-        mom_rate = None
+        usage_mom_rate = None
+        amount_mom_rate = None
         previous_usage = None
+        previous_amount = None
         if len(trend_data) >= 2:
             previous = trend_data[-2]
             previous_usage = previous.usage
-            mom_rate = ((current_usage - previous_usage) / previous_usage) * 100 if previous_usage != 0 else 0
+            previous_amount = previous.amount
+            usage_mom_rate = ((current_usage - previous_usage) / previous_usage) * 100 if previous_usage != 0 else 0
+            amount_mom_rate = ((current_amount - previous_amount) / previous_amount) * 100 if previous_amount != 0 else 0
 
         # 同比（与去年同月比较）
-        yoy_rate = None
+        usage_yoy_rate = None
+        amount_yoy_rate = None
         current_year = current.bill_date.year
         current_month = current.bill_date.month
         for item in trend_data[:-1]:  # 排除当前月
             if item.bill_date.year == current_year - 1 and item.bill_date.month == current_month:
-                yoy_rate = ((current_usage - item.usage) / item.usage) * 100 if item.usage != 0 else 0
+                usage_yoy_rate = ((current_usage - item.usage) / item.usage) * 100 if item.usage != 0 else 0
+                amount_yoy_rate = ((current_amount - item.amount) / item.amount) * 100 if item.amount !=0 else 0
                 break
 
         # 判断是否异常（增长率超过30%）
-        is_abnormal = abs(mom_rate) > 30 if mom_rate else False
+        is_abnormal = abs(usage_mom_rate) > 30 if usage_mom_rate else False
 
         return schemas.EnergyComparison(
             current_usage=current_usage,
             previous_usage=previous_usage,
-            yoy_rate=round(yoy_rate, 2) if yoy_rate else None,
-            mom_rate=round(mom_rate, 2) if mom_rate else None,
+            usage_yoy_rate=round(usage_yoy_rate, 2) if usage_yoy_rate else None,
+            usage_mom_rate=round(usage_mom_rate, 2) if usage_mom_rate else None,
+            amount_yoy_rate=round(amount_yoy_rate, 2) if amount_yoy_rate else None,
+            amount_mom_rate=round(amount_mom_rate, 2) if amount_mom_rate else None,
             is_abnormal=is_abnormal
         )
 
@@ -244,19 +281,38 @@ class EnergyAnalysisService:
 
         return result
 
+    @staticmethod
+    def get_energy_distribution(
+        db: Session,
+        user_id: int
+    ) -> schemas.LatestEnergyDistribution:
+        """获取最新月份电力、燃气、水资源消费情况"""
+        electricity_amount = 
+
     def generate_analysis_and_suggestions(
         self,
         db: Session,
         user_id: int,
-        bill_type: schemas.BillType
+        bill_type: schemas.BillType,
+        period: schemas.AnalysisPeriod.monthly,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
     ) -> schemas.AnalysisResult:
         """生成完整的能耗分析结果和AI节能建议"""
         # 1. 获取趋势数据
-        trend_data = self.get_energy_trend(db, user_id, bill_type)
+        trend_data = self.get_energy_trend(db, user_id, period, start_date, end_date, bill_type)
         if not trend_data:
             return schemas.AnalysisResult(
                 trend_data=[],
-                comparison=schemas.EnergyComparison(current_usage=0, previous_usage=None, yoy_rate=None, mom_rate=None, is_abnormal=False),
+                comparison=schemas.EnergyComparison(
+                    current_usage=0,
+                    previous_usage=None,
+                    usage_yoy_rate=None,
+                    usage_mom_rate=None,
+                    amount_yoy_rate=None,
+                    amount_mom_rate=None,
+                    is_abnormal=False
+                ),
                 device_consumption=[],
                 suggestions=[]
             )
@@ -281,8 +337,8 @@ class EnergyAnalysisService:
         trend_analysis = f"""
         最近{len(trend_data)}个月{bill_type.value}使用情况:
         - 最新月份 ({latest_bill_date.strftime("%Y-%m")}) 用量: {trend_data[-1].usage} {'度' if bill_type == schemas.BillType.electricity else '立方米'}, 费用: {trend_data[-1].amount}元
-        - 环比变化: {comparison.mom_rate}% (上月用量: {comparison.previous_usage})
-        - 同比变化: {comparison.yoy_rate}% (去年同月用量)
+        - 环比变化: {comparison.usage_mom_rate}% (上月用量: {comparison.previous_usage})
+        - 同比变化: {comparison.usage_yoy_rate}% (去年同月用量)
         """
 
         # 6. 构建设备能耗占比文本
