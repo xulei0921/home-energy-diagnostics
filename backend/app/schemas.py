@@ -157,6 +157,18 @@ class EnergyBillResponse(EnergyBillBase):
     created_at: datetime
     updated_at: datetime
 
+# 分页账单模型 - 响应
+class PaginatedBillResponse(BaseModel):
+    """分页账单响应模型"""
+    items: List[EnergyBillResponse]  # 当前页的账单列表
+    total: int  # 总记录数
+    page: int # 当前页码
+    page_size: int  # 每页数量
+    total_pages: int  # 总页数
+
+    class Config:
+        from_attributes = True
+
 # 节能建议模型 - 基础
 class EnergySavingSuggestionBase(BaseModel):
     bill_type: BillType
@@ -216,10 +228,18 @@ class AnalysisResult(BaseModel):
     device_consumption: List[DeviceEnergyConsumption]
     suggestions: List[EnergySavingSuggestionResponse]
 
-class LatestEnergyDistribution(BaseModel):
-    electricity_amount: Optional[float] = 0
-    gas_amount: Optional[float] = 0
-    water_amount: Optional[float] = 0
+class LatestCostItem(BaseModel):
+    bill_type: BillType
+    amount: float  # 花费金额
+    percentage: float  # 占总花费的百分比
+
+class LatestCostResponse(BaseModel):
+    total_amount: float  # 总花费
+    items: list[LatestCostItem]  # 总类型花费详情
+    month: str  # 月份 (格式: YYYY-MM)
+
+    class Config:
+        from_attributes = True
 
 # 登录请求
 class LoginRequest(BaseModel):

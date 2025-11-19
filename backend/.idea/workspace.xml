@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="75a9c734-2073-432c-ba0d-46982d7bd84e" name="更改" comment="" />
+    <list default="true" id="75a9c734-2073-432c-ba0d-46982d7bd84e" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/../frontend/src/views/Bills.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/views/Bills.vue" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -20,18 +22,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "xulei0921"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;xulei0921&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "git@github.com:xulei0921/home-energy-diagnostics.git",
-    "accountId": "334898e6-d204-4d02-b60b-0345b688c3c6"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:xulei0921/home-energy-diagnostics.git&quot;,
+    &quot;accountId&quot;: &quot;334898e6-d204-4d02-b60b-0345b688c3c6&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 3
 }</component>

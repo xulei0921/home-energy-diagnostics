@@ -34,6 +34,15 @@ def get_energy_comparison(
 
     return energy_analysis_service.calculate_comparison(trend_data)
 
+# 获取能源费用分布数据
+@router.get("/energy-costs-distribution", response_model=schemas.LatestCostResponse)
+def get_energy_costs_distribution(
+    db: Session = Depends(get_db),
+    current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
+):
+    """获取最新月份的各类能源花费数据"""
+    return energy_analysis_service.get_latest_month_costs(db, user_id=current_user.id)
+
 # 获取能耗分析结果
 @router.get("/{bill_type}", response_model=schemas.AnalysisResult)
 def get_energy_analysis(
@@ -53,9 +62,3 @@ def get_energy_analysis(
         end_date=end_date
     )
 
-# 获取能源费用分布数据
-@router.get("/energy-costs-distribution", response_model=schemas.LatestEnergyDistribution)
-def get_energy_costs_distribution(
-    db: Session = Depends(get_db),
-    current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
-):

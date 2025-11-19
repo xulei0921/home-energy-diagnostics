@@ -1,4 +1,5 @@
 import json
+from calendar import month
 from datetime import datetime, timedelta, date
 
 from sqlalchemy import extract, case, func
@@ -282,12 +283,60 @@ class EnergyAnalysisService:
         return result
 
     @staticmethod
-    def get_energy_distribution(
+    def get_latest_month_costs(
         db: Session,
         user_id: int
-    ) -> schemas.LatestEnergyDistribution:
-        """获取最新月份电力、燃气、水资源消费情况"""
-        electricity_amount = 
+    ) -> schemas.LatestCostResponse:
+        """获取最新月份的各类能源花费及占比"""
+        # 获取最新月份（有数据的最后一个月）
+        latest_bill = db.query(
+            models.EnergyBill.bill_date
+        ).filter(
+            models.EnergyBill.user_id == user_id
+        ).order_by(
+            models.EnergyBill.bill_date.desc()
+        ).first()
+
+        if not latest_bill:
+            return schemas.LatestCostResponse(
+                total_amount=0,
+                items=[],
+                month=""
+            )
+
+        latest_month = latest_bill.bill_date
+        month_str = latest_month.strftime("%Y-%m")
+
+        # 查询该月份所有类型的账单
+        bills = db.query(
+            models.EnergyBill.bill_type,
+            func.sum(models.EnergyBill.amount).label('total_amount')
+        ).filter(
+            models.EnergyBill.user_id == user_id,
+            extract('year', models.EnergyBill.bill_date) == latest_month.year,
+            extract('month', models.EnergyBill.bill_date) == latest_month.month
+        ).group_by(
+            models.EnergyBill.bill_type
+        ).all()
+
+        # 计算总花费
+        total_amount = sum(bill.total_amount for bill in bills) if bills else 0
+
+        # 计算各类型占比并构造返回数据
+        items = []
+        for bill in bills:
+            percentage = (bill.total_amount / total_amount) * 100 if total_amount > 0 else 0
+            items.append(schemas.LatestCostItem(
+                bill_type=bill.bill_type,
+                amount=round(bill.total_amount, 2),
+                percentage=round(percentage, 2)
+            ))
+
+        return schemas.LatestCostResponse(
+            total_amount=round(total_amount, 2),
+            items=items,
+            month=month_str
+        )
 
     def generate_analysis_and_suggestions(
         self,
