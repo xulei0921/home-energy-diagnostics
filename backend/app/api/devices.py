@@ -8,15 +8,45 @@ from typing import List, Optional
 router = APIRouter()
 
 # 获取当前用户设备列表（支持筛选）
-@router.get("/", response_model=List[schemas.DeviceResponse])
+@router.get("/", response_model=schemas.PaginatedDeviceResponse)
 def get_devices(
     db: Session = Depends(get_db),
     current_user: schemas.UserResponse = Depends(dependencies.get_current_user),
-    device_type: Optional[schemas.DeviceType] = None
+    device_type: Optional[schemas.DeviceType] = None,
+    page: int = 1,
+    page_size: int = 5
 ):
-    devices = devices_crud.get_devices(db, user_id=current_user.id, device_type=device_type)
+    # devices = devices_crud.get_devices(db, user_id=current_user.id, device_type=device_type)
+    #
+    # return devices
 
-    return devices
+    # 验证分页参数合法性
+    if page < 1:
+        raise HTTPException(status_code=400, detail="页码不能小于1")
+    if page_size < 1 or page_size > 100:
+        raise HTTPException(status_code=400, detail="每页数量必须在1~100之间")
+
+    return devices_crud.get_devices(
+        db,
+        user_id=current_user.id,
+        device_type=device_type,
+        page=page,
+        page_size=page_size
+    )
+
+# 获取设备 by ID
+@router.get("/{device_id}", response_model=schemas.DeviceResponse)
+def get_device_by_id(
+    device_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.UserResponse = Depends(dependencies.get_current_user),
+):
+    db_device = devices_crud.get_device_by_id(db, user_id=current_user.id, device_id=device_id)
+
+    if db_device is None:
+        raise HTTPException(status_code=404, detail="设备不存在")
+
+    return db_device
 
 # 新增设备
 @router.post("/", response_model=schemas.DeviceResponse)
@@ -26,6 +56,25 @@ def create_device(
     current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
 ):
     return devices_crud.create_device(db, device=device, user_id=current_user.id)
+
+# 修改设备信息
+@router.put("/{device_id}", response_model=schemas.DeviceResponse)
+def update_device(
+    device_id: int,
+    device_update: schemas.DeviceUpdate,
+    db: Session = Depends(get_db),
+    current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
+):
+    return devices_crud.update_device(db, user_id=current_user.id, device_id=device_id, device_update=device_update)
+
+# 删除设备信息
+@router.delete("/{device_id}")
+def delete_device(
+    device_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
+):
+    return devices_crud.delete_device(db, device_id=device_id, user_id=current_user.id)
 
 # 新增设备使用记录
 @router.post("/usage", response_model=schemas.DeviceUsageResponse)

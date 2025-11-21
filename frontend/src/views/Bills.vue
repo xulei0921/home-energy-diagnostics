@@ -1,9 +1,6 @@
 <template>
     <div class="header">
-        <div class="title">
-            <h1>账单列表</h1>
-        </div>
-
+        <h1 class="title">账单列表</h1>
         <div class="bill-action">
             <el-date-picker
                 style="flex: 1;"
@@ -93,7 +90,7 @@
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column prop="usage" label="用量">
+            <el-table-column prop="usage" label="用量" align="center">
                 <template #default="scope">
                     {{ scope.row.usage }}
                     <span v-if="scope.row.bill_type === 'electricity'">Kwh</span>
@@ -101,7 +98,7 @@
                     <span v-else-if="scope.row.bill_type === 'water'">m³</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="unit_price" label="单价">
+            <el-table-column prop="unit_price" label="单价" align="center">
                 <template #default="scope">
                     ￥{{ scope.row.unit_price }}
                     <span v-if="scope.row.bill_type === 'electricity'">/Kwh</span>
@@ -109,13 +106,13 @@
                     <span v-else-if="scope.row.bill_type === 'water'">/m³</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="amount" label="总金额">
+            <el-table-column prop="amount" label="总金额" align="center">
                 <template #default="scope">
                     <span class="bold-text">￥{{ scope.row.amount }}</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="notes" label="备注"></el-table-column>
-            <el-table-column label="操作" header-align="center">
+            <el-table-column prop="notes" label="备注" header-align="center"></el-table-column>
+            <el-table-column label="操作" header-align="center" align="center">
                 <template #default="scope">
                     <el-button
                         type="text"
@@ -432,7 +429,28 @@ onMounted(() => {
 }
 
 .title {
-    font-size: 10px;
+    font-size: clamp(16px, 2vw, 24px);
+}
+
+/* 在小屏幕上保持适中大小 */
+@media (max-width: 768px) {
+    .title {
+        font-size: 18px;
+    }
+}
+
+/* 在中等屏幕上稍微增大 */
+@media (min-width: 769px) and (max-width: 1200px) {
+    .title {
+        font-size: 20px;
+    }
+}
+
+/* 在大屏幕上使用更大字体 */
+@media (min-width: 1201px) {
+    .title {
+        font-size: 24px;
+    }
 }
 
 .bill-action {
@@ -476,9 +494,11 @@ onMounted(() => {
     display: inline-block;
     width: 32px;
     height: 32px;
-    background-color: #DBEAFE;
+    /* background-color: #DBEAFE; */
+    background-color: #8FDAEB;
     border-radius: 16px;
-    color: #409EFF;
+    /* color: #409EFF; */
+    color: #F0F9EB;
     font-size: 18px;
     text-align: center;
     line-height: 32px;

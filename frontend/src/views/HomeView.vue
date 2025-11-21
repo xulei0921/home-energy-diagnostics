@@ -33,6 +33,6 @@ import Header from '@/components/layout/Header.vue';
     margin-left: 250px;
     margin-top: 60px;
     padding: 10px;
-    height: 100vh;
+    height: calc(100vh - 60px);
 }
 </style>

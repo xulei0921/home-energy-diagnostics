@@ -169,6 +169,17 @@ class PaginatedBillResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class PaginatedDeviceResponse(BaseModel):
+    """分页设备响应模型"""
+    items: List[DeviceResponse]  # 当前页的设备列表
+    total: int  # 总记录数
+    page: int  # 当前页码
+    page_size: int  # 每页数量
+    total_pages: int  # 总页数
+
+    class Config:
+        from_attributes = True
+
 # 节能建议模型 - 基础
 class EnergySavingSuggestionBase(BaseModel):
     bill_type: BillType
