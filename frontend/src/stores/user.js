@@ -22,6 +22,10 @@ export const useUserStore = defineStore('big-user', () => {
         return true
     }
 
+    // const isFamilyInfoExist = () => {
+
+    // }
+
     return {
         token,
         setToken,

@@ -60,3 +60,12 @@ def delete_family_info(db: Session, user_id: int):
     db.commit()
 
     return db_family_info
+
+# 当前用户是否有家庭信息
+def is_family_info_exist(db: Session, user_id: int):
+    db_family_info = get_family_info(db, user_id=user_id)
+
+    if not db_family_info:
+        return False
+
+    return True

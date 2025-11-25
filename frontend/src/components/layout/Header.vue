@@ -4,8 +4,8 @@
             <div class="header-title">{{ currentTitle }}</div>
             <el-dropdown>
                 <div class="el-dropdown-link">
-                    <el-avatar class="avatar"></el-avatar>
-                    <span class="username">admin</span>
+                    <el-avatar :src="currentUser.avatar" class="avatar" :icon="UserFilled"></el-avatar>
+                    <span class="username">{{ currentUser.username }}</span>
                     <el-icon class="el-dropdown-icon">
                         <ArrowDown />
                     </el-icon>
@@ -22,11 +22,14 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { getCurrentUser } from '@/api/user'
 import { useUserStore } from '@/stores'
+import { User, UserFilled } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
+const currentUser = ref({})
 
 const {
     removeToken
@@ -59,10 +62,24 @@ const logout = async () => {
     }
 }
 
+const fetchCurrentUser = async () => {
+    try {
+        const res = await getCurrentUser()
+        // console.log(res)
+        currentUser.value = res
+    } catch (error) {
+        console.error(error)
+    }
+}
+
 watch(() => route.path, (newPath) => {
     currentTitle.value = titleMap[newPath] || '首页'
 }, {
     immediate: true
+})
+
+onMounted(() => {
+    fetchCurrentUser()
 })
 </script>
 

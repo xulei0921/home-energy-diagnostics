@@ -77,7 +77,11 @@
 
     <div class="table-container">
         <el-table :data="tableData">
-            <el-table-column prop="bill_date" label="账单日期"></el-table-column>
+            <el-table-column label="账单日期">
+                <template #default="scope">
+                    <span>{{ formatMonth(scope.row.bill_date) }}</span>
+                </template>
+            </el-table-column>
             <el-table-column label="账单类型">
                 <template #default="scope">
                     <div class="bill-type-container">
@@ -283,6 +287,14 @@ const getBillTypeText = (billType) => {
         default:
             return '未知类型';
     }
+}
+
+const formatMonth = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    return `${year}-${month}`
 }
 
 // 当分页器页面大小改变时

@@ -1,4 +1,4 @@
-from dns.e164 import query
+from datetime import datetime, date
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from .. import models, schemas
@@ -142,5 +142,103 @@ def create_device_usage(
     db.add(db_usage)
     db.commit()
     db.refresh(db_usage)
+
+    return db_usage
+
+# 获取设备使用记录
+def get_device_usage(
+    db: Session,
+    device_id: int,
+    user_id: int,
+    usage_date: Optional[date] = None,
+    page: int = 1,
+    page_size: int = 5
+):
+    device = db.query(models.Device).filter(
+        models.Device.id == device_id,
+        models.Device.user_id == user_id
+    )
+
+    if not device:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="设备不存在"
+        )
+
+    query = db.query(models.DeviceUsage).filter(models.DeviceUsage.device_id == device_id)
+
+    if usage_date:
+        query = query.filter(models.DeviceUsage.usage_date == usage_date)
+
+    total = query.count()
+    offset = (page - 1) * page_size
+    items = query.order_by(models.DeviceUsage.usage_date).offset(offset).limit(page_size).all()
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size
+    }
+
+# 获取设备使用记录 by ID
+def get_device_usage_by_id(
+    db: Session,
+    device_id: int,
+    usage_id: int,
+    user_id: int
+):
+    db_device = db.query(models.Device).filter(
+        models.Device.user_id == user_id,
+        models.Device.id == device_id
+    ).first()
+    if not db_device:
+        raise HTTPException(status_code=404, detail="设备不存在")
+
+    db_usage = db.query(models.DeviceUsage).filter(
+        models.DeviceUsage.id == usage_id,
+        models.DeviceUsage.device_id == db_device.id
+    ).first()
+
+    return db_usage
+
+# 编辑设备使用记录
+def update_device_usage(
+    db: Session,
+    device_id: int,
+    usage_id: int,
+    user_id: int,
+    usage_update: schemas.DeviceUsageUpdate
+):
+    db_usage = get_device_usage_by_id(db, device_id=device_id, usage_id=usage_id, user_id=user_id)
+
+    update_data = usage_update.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
+        setattr(db_usage, key, value)
+
+    db.commit()
+    db.refresh(db_usage)
+
+    return db_usage
+
+# 删除设备使用记录
+def delete_device_usage(
+    db: Session,
+    device_id: int,
+    usage_id: int,
+    user_id: int
+):
+    db_device = get_device_by_id(db, user_id=user_id, device_id=device_id)
+    if not db_device:
+        raise HTTPException(status_code=404, detail="设备不存在")
+
+    db_usage = get_device_usage_by_id(db, device_id=device_id, usage_id=usage_id, user_id=user_id)
+    if not db_usage:
+        raise HTTPException(status_code=404, detail="设备使用记录不存在")
+
+    db.delete(db_usage)
+    db.commit()
 
     return db_usage

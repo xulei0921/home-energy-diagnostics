@@ -52,3 +52,11 @@ def delete_family_info(
     current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
 ):
     return family_crud.delete_family_info(db, user_id=current_user.id)
+
+# 当前用户是否有家庭信息
+@router.get("/is-exist")
+def is_family_info_exist(
+    db: Session = Depends(get_db),
+    current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
+):
+    return family_crud.is_family_info_exist(db, user_id=current_user.id)

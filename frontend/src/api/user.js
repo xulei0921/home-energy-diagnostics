@@ -14,3 +14,13 @@ export const loginUser = ({ username, password }) => {
         }
     })
 }
+
+// 获取当前用户信息
+export const getCurrentUser = () => {
+    return request.get('/users/me')
+}
+
+// 更新当前用户信息
+export const updateCurrentUser = (userUpdate) => {
+    return request.put('/users/me', userUpdate)
+}

@@ -42,10 +42,22 @@ instance.interceptors.response.use(
             return Promise.reject(err.response?.data?.detail || '请求失败')
         }
 
-        // 错误的默认情况 => 只要给提示
-        const errorMsg = err.response?.data?.detail || '请求失败，请稍后重试'
-        ElMessage.error(errorMsg)
-        return Promise.reject(errorMsg)
+        // 检查是否为静默请求（通过config中的silent标识）
+        const isSilent = err.config?.silent === true
+
+        // 处理404错误且为静默请求的情况（如获取家庭信息时没有数据）
+        if (err.response?.status === 404 && isSilent) {
+            return Promise.reject(err)
+        }
+
+        // 错误的默认情况 => 只要给提示（非静默请求）
+        if (!isSilent) {
+            const errorMsg = err.response?.data?.detail || '请求失败，请稍后重试'
+            ElMessage.error(errorMsg)
+            return Promise.reject(errorMsg)
+        }
+
+        return Promise.reject(err)
     }
 )
 

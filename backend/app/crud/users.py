@@ -38,10 +38,19 @@ def create_user(db: Session, user: schemas.UserCreate):
             detail="邮箱已被注册"
         )
 
+    if user.phone:
+        db_user = db.query(models.User).filter(models.User.phone == user.phone).first()
+        if db_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="手机号已被注册"
+            )
+
     # 创建用户对象
     db_user = models.User(
         username = user.username,
         email = user.email,
+        phone = user.phone,
         password_hash = get_password_hash(user.password),
     )
 
@@ -75,6 +84,30 @@ def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="用户不存在"
         )
+
+    if user_update.email is not None:
+        existing_user = db.query(models.User).filter(
+            models.User.email == user_update.email,
+            models.User.id != user_id
+        ).first()
+
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="该邮箱已被注册"
+            )
+
+    if user_update.phone is not None:
+        existing_user = db.query(models.User).filter(
+            models.User.phone == user_update.phone,
+            models.User.id != user_id
+        ).first()
+
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="该手机号已被注册"
+            )
 
     # 更新字段
     update_data = user_update.model_dump(exclude_unset=True)

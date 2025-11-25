@@ -26,6 +26,7 @@ class AnalysisPeriod(str, Enum):
 class UserBase(BaseModel):
     username: str
     email: EmailStr
+    phone: Optional[str] = None
 
 # 用户模型 - 创建
 class UserCreate(UserBase):
@@ -34,10 +35,13 @@ class UserCreate(UserBase):
 # 用户模型 - 更新
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    avatar: Optional[str] = None
 
 # 用户模型 - 响应
 class UserResponse(UserBase):
     id: int
+    avatar: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -179,6 +183,14 @@ class PaginatedDeviceResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class PaginatedDeviceUsageResponse(BaseModel):
+    """分页设备使用记录模型"""
+    items: List[DeviceUsageResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
 
 # 节能建议模型 - 基础
 class EnergySavingSuggestionBase(BaseModel):

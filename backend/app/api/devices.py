@@ -4,6 +4,7 @@ from .. import schemas, dependencies
 from ..database import get_db
 from ..crud import devices as devices_crud
 from typing import List, Optional
+from datetime import date
 
 router = APIRouter()
 
@@ -84,3 +85,48 @@ def create_device_usage(
     current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
 ):
     return devices_crud.create_device_usage(db, device_usage=usage, user_id=current_user.id)
+
+# 获取设备使用记录
+@router.get("/usage/{device_id}", response_model=schemas.PaginatedDeviceUsageResponse)
+def get_device_usage(
+    device_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.UserResponse = Depends(dependencies.get_current_user),
+    usage_date: Optional[date] = None,
+    page: int = 1,
+    page_size: int = 5
+):
+    if page < 1:
+        raise HTTPException(status_code=400, detail="页码不能小于1")
+    if page_size < 1 or page_size > 100:
+        raise HTTPException(status_code=400, detail="每页数量必须在1~100之间")
+
+    return devices_crud.get_device_usage(
+        db,
+        device_id=device_id,
+        user_id=current_user.id,
+        usage_date=usage_date,
+        page=page,
+        page_size=page_size
+    )
+
+# 编辑设备使用记录
+@router.put("/usage/{device_id}/{usage_id}", response_model=schemas.DeviceUsageResponse)
+def update_device_usage(
+    device_id: int,
+    usage_id: int,
+    usage_update: schemas.DeviceUsageUpdate,
+    db: Session = Depends(get_db),
+    current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
+):
+    return devices_crud.update_device_usage(db, device_id=device_id, usage_id=usage_id, user_id=current_user.id, usage_update=usage_update)
+
+# 删除设备使用记录
+@router.delete("/usage/{device_id}/{usage_id}")
+def delete_device_usage(
+    device_id: int,
+    usage_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
+):
+    return devices_crud.delete_device_usage(db, device_id=device_id, usage_id=usage_id, user_id=current_user.id)
