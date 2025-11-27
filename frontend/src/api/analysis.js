@@ -13,3 +13,8 @@ export const getEnergyComparison = (trend_data) => {
         params: trend_data
     })
 }
+
+// 获取最新月份的各类能源花费数据
+export const getEnergyCostsDistribution = () => {
+    return request.get('/analysis/energy-costs-distribution')
+}

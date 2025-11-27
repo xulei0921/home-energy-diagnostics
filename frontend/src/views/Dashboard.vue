@@ -9,7 +9,7 @@
                         <el-icon>
                             <component :is="trendIcon(elec_consumption.usage_mom_rate)" />
                         </el-icon>
-                        <span>{{ elec_consumption.usage_mom_rate }}% 同比</span>
+                        <span>{{ elec_consumption.usage_mom_rate }}% 环比</span>
                     </div>
                 </div>
             </el-card>
@@ -23,7 +23,7 @@
                         <el-icon>
                             <component :is="trendIcon(gas_consumption.usage_mom_rate)" />
                         </el-icon>
-                        <span>{{ gas_consumption.usage_mom_rate }}% 同比</span>
+                        <span>{{ gas_consumption.usage_mom_rate }}% 环比</span>
                     </div>
                 </div>
             </el-card>
@@ -37,13 +37,13 @@
                         <el-icon>
                             <component :is="trendIcon(water_consumption.usage_mom_rate)" />
                         </el-icon>
-                        <span>{{ water_consumption.usage_mom_rate }}% 同比</span>
+                        <span>{{ water_consumption.usage_mom_rate }}% 环比</span>
                     </div>
                 </div>
             </el-card>
         </el-col>
     </el-row>
-    <div class="chart-container">
+    <div class="line-chart-container">
         <el-card>
         <h2>能耗趋势图</h2>
         <TrendChart
@@ -53,13 +53,41 @@
         />
         </el-card>
     </div>
+    <el-row :gutter="20">
+        <el-col :span="8">
+            <el-card>
+                <h2>能源费用分布</h2>
+                <DistributionChart
+                    type="doughnut"
+                />
+                <div class="cost-detail" v-for="item in costsDistribution">
+                    <div class="icon-text">
+                        <span :class="getIconClass(item.bill_type)"></span>
+                        <span>{{ getBillTypeText(item.bill_type) }}</span>
+                    </div>
+                    <div class="cost-amount">
+                        <span>￥{{ item.amount }} ({{ item.percentage }}%)</span>
+                        <span></span>
+                    </div>
+                </div>
+            </el-card>
+        </el-col>
+        <el-col :span="16">
+            <el-card>
+                222
+            </el-card>
+        </el-col>
+    </el-row>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import TrendChart from '@/components/charts/TrendChart.vue';
+import DistributionChart from '@/components/charts/DistributionChart.vue';
 import { CaretTop, CaretBottom, Minus, SemiSelect, Top, Bottom } from '@element-plus/icons-vue'
-import { getEnergyComparison, getEnergyTrend } from '@/api/analysis';
+import { getEnergyComparison, getEnergyTrend, getEnergyCostsDistribution } from '@/api/analysis';
+
+const costsDistribution = ref({})
 
 // 定义响应式数据，用于存储图表配置
 const chartData = ref({
@@ -162,6 +190,30 @@ const chartOptions = ref({
     }
 })
 
+const getBillTypeText = (billType) => {
+    switch(billType) {
+        case 'electricity':
+            return '电费'
+        case 'gas':
+            return '燃气费'
+        case 'water':
+            return '水费'
+        default:
+            return '未知费用'
+    }
+}
+
+const getIconClass = (billType) => {
+    switch (billType) {
+        case 'electricity':
+            return 'radius-electricity'
+        case 'gas':
+            return 'radius-gas'
+        case 'water':
+            return 'radius-water'
+    }
+}
+
 const fetchEnergyTrendData = async () => {
     const electricityData = await getEnergyTrend({
         period: 'monthly',
@@ -252,6 +304,16 @@ const fetchEnergyComparison = async (trend_data) => {
     }
 }
 
+const fetchEnergyCostsDistribution = async () => {
+    try {
+        const res = await getEnergyCostsDistribution()
+        console.log(res)
+        costsDistribution.value = res.items
+    } catch (error) {
+        console.error(error)
+    }
+}
+
 onMounted(() => {
     fetchEnergyComparison({
         period: 'monthly',
@@ -269,6 +331,7 @@ onMounted(() => {
     })
 
     fetchEnergyTrendData()
+    fetchEnergyCostsDistribution()
 })
 
 </script>
@@ -281,7 +344,7 @@ onMounted(() => {
 
 .electricity-card {
     height: 160px;
-    background-color: rgba(59, 130, 246, 1);
+    background-color: rgba(75, 192, 192, 1);
     border-radius: 15px;
 }
 
@@ -293,13 +356,13 @@ onMounted(() => {
 
 .water-card {
     height: 160px;
-    background: #5096F9;
+    background: rgb(30, 144, 255);
     border-radius: 15px;
 }
 
 .value-type {
     font-size: 16px;
-    color: #d7e3f5;
+    color: #f0f1f4;
 }
 
 .value-consumption {
@@ -313,7 +376,45 @@ onMounted(() => {
     color: #fff;
 }
 
-.chart-container {
-    margin-top: 20px;
+.line-chart-container {
+    margin: 20px 0;
+}
+
+.cost-detail {
+    display: flex;
+    justify-content: space-between;
+}
+
+.icon-text {
+    display: flex;
+    align-items: center;
+    margin: 3px 0;
+}
+
+.radius-electricity {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    background-color: rgb(75, 192, 192);
+    margin-right: 5px;
+}
+
+.radius-gas {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    background-color: rgb(243, 104, 18);
+    margin-right: 5px;
+}
+
+.radius-water {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    background-color: rgb(30, 144, 255);
+    margin-right: 5px;
 }
 </style>

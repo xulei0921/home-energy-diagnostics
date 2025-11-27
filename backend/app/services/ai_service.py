@@ -11,6 +11,14 @@ DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
 DASHSCOPE_MODEL = os.getenv("DEFAULT_ALI_MODEL")
 DASHSCOPE_API_URL = os.getenv("ALI_BASE_URL")
 
+# 验证必需的环境变量
+if not DASHSCOPE_API_KEY:
+    raise Exception("DASHSCOPE_API_KEY环境变量未设置")
+if not DASHSCOPE_MODEL:
+    raise Exception("DEFAULT_ALI_MODEL环境变量未设置")
+if not DASHSCOPE_API_URL:
+    raise Exception("ALI_BASE_URL环境变量未设置")
+
 class AISuggestionService:
     @staticmethod
     def generate_suggestion(
@@ -35,7 +43,7 @@ class AISuggestionService:
             "gas": "燃气",
             "water": "水资源"
         }
-        energy_type = energy_type_map[bill_type.value]
+        energy_type = energy_type_map.get(bill_type.value if bill_type else "electricity", "电力")
 
         prompt = f"""
         你是家庭{energy_type}节能专家，请根据以下信息为用户提供针对性的节能建议：

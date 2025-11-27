@@ -6,13 +6,12 @@
   <component name="ChangeListManager">
     <list default="true" id="75a9c734-2073-432c-ba0d-46982d7bd84e" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/../frontend/.env.development" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/.env.development" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/api/device.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/device.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/api/user.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/user.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/components/layout/Header.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/components/layout/Header.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/views/Bills.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/views/Bills.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/views/Devices.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/views/Devices.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/views/HomeView.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/views/HomeView.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/views/Settings.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/views/Settings.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/api/analysis.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/api/analysis.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/components/charts/DistributionChart.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/components/charts/DistributionChart.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/views/Dashboard.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/views/Dashboard.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/views/Electricity.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/views/Electricity.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/views/Gas.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/views/Gas.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/views/Water.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/views/Water.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

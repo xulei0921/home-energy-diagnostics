@@ -27,6 +27,7 @@ def get_date_range_for_period(
         end_date = today.replace(month=12, day=1)
 
     elif period == schemas.AnalysisPeriod.annual:
+        start_date = today.replace(month=1, day=1)
         end_date = today
 
     elif period == schemas.AnalysisPeriod.custom:
