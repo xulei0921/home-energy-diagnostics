@@ -206,7 +206,7 @@ class EnergyAnalysisService:
         current = trend_data[-1]
         current_usage = current.usage
         current_amount = current.amount
-        current_unit_price = current_amount / current_usage
+        current_unit_price = current_amount / current_usage if current_usage != 0 else 0
 
         # 环比（与上一个月比较）
         usage_mom_rate = None
@@ -245,9 +245,9 @@ class EnergyAnalysisService:
             current_usage=current_usage,
             current_amount=current_amount,
             current_unit_price=round(current_unit_price, 2),
-            previous_usage=previous_usage,
-            previous_amount=previous_amount,
-            previous_unit_price=round(previous_unit_price, 2),
+            previous_usage=previous_usage if previous_usage is not None else None,
+            previous_amount=previous_amount if previous_amount is not None else None,
+            previous_unit_price=round(previous_unit_price, 2) if previous_unit_price is not None else None,
             usage_yoy_rate=round(usage_yoy_rate, 2) if usage_yoy_rate else None,
             usage_mom_rate=round(usage_mom_rate, 2) if usage_mom_rate else None,
             amount_yoy_rate=round(amount_yoy_rate, 2) if amount_yoy_rate else None,
@@ -382,6 +382,88 @@ class EnergyAnalysisService:
             items=items,
             month=month_str
         )
+
+    @staticmethod
+    def get_device_consumption(
+        db: Session,
+        bill_type: schemas.BillType,
+        user_id: int
+    ):
+        # 获取最新月份（有数据的最后一个月）
+        latest_bill = db.query(
+            models.EnergyBill.bill_date
+        ).filter(
+            models.EnergyBill.user_id == user_id
+        ).order_by(
+            models.EnergyBill.bill_date.desc()
+        ).first()
+
+        latest_month = latest_bill.bill_date
+
+        # 获取该用户该类型的所有设备
+        devices = db.query(models.Device).filter(
+            models.Device.user_id == user_id,
+            models.Device.device_type == bill_type
+        ).all()
+
+        if not devices:
+            return []
+
+        # 计算每月总能耗（度/立方米）
+        device_consumptions = []
+        for device in devices:
+            usage_date_str = latest_month.strftime("%Y-%m-%d")
+            usage_record = db.query(models.DeviceUsage).filter(
+                models.DeviceUsage.device_id == device.id,
+                models.DeviceUsage.usage_date == usage_date_str
+            ).first()
+
+            if usage_record:
+                monthly_hours = usage_record.usage_hours
+            else:
+                # 按30天估算月使用小时数
+                monthly_hours = device.usage_hours_per_day * 30 if device.usage_hours_per_day else 0
+
+            # 计算能耗
+            # 电力：功率(W) * 时长(h) / 1000 = 度
+            # 燃气：流量(m³/h) * 时长(h) = 立方米
+            # 水资源：流量(L/h) * 时长(h) / 1000 = 立方米
+            if bill_type == schemas.BillType.electricity:
+                monthly_usage = (device.power_rating * monthly_hours) / 1000 if device.power_rating else 0
+            elif bill_type == schemas.BillType.gas:
+                monthly_usage = device.power_rating * monthly_hours if device.power_rating else 0
+            else:  # water
+                monthly_usage = (device.power_rating * monthly_hours) / 1000 if device.power_rating else 0
+
+            device_consumptions.append({
+                "device_id": device.id,
+                "device_name": device.name,
+                "monthly_usage": monthly_usage
+            })
+
+        # 计算总能耗和占比
+        total_usage = sum([d["monthly_usage"] for d in device_consumptions])
+        if total_usage == 0:
+            return [
+                schemas.DeviceEnergyConsumption(
+                    device_id=d["device_id"],
+                    device_name=d["device_name"],
+                    consumption=0,
+                    monthly_usage=d["monthly_usage"]
+                ) for d in device_consumptions
+            ]
+
+        # 按能耗占比降序排序
+        result = sorted([
+            schemas.DeviceEnergyConsumption(
+                device_id=d["device_id"],
+                device_name=d["device_name"],
+                consumption=round((d["monthly_usage"] / total_usage) * 100, 2),
+                monthly_usage=round(d["monthly_usage"], 2)
+            ) for d in device_consumptions
+        ], key=lambda x: x.consumption, reverse=True)
+
+        return result
 
     def generate_analysis_and_suggestions(
         self,

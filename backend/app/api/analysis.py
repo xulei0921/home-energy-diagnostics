@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.functions import current_user
+
 from .. import models, schemas, dependencies
 from ..database import get_db
 from ..services.analysis_service import energy_analysis_service
 from ..services.enhanced_analysis_service import enhanced_analysis_service
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
 
 router = APIRouter()
 
@@ -43,6 +45,15 @@ def get_energy_costs_distribution(
 ):
     """获取最新月份的各类能源花费数据"""
     return energy_analysis_service.get_latest_month_costs(db, user_id=current_user.id)
+
+# 获取设备能耗占比数据
+@router.get("/device-consumption/{bill_type}")
+def get_device_consumption(
+    bill_type: schemas.BillType,
+    db: Session = Depends(get_db),
+    current_user: schemas.UserResponse = Depends(dependencies.get_current_user)
+):
+    return energy_analysis_service.get_device_consumption(db, bill_type=bill_type, user_id=current_user.id)
 
 # 综合能耗分析 - 新增的增强分析接口
 @router.get("/comprehensive-analysis", response_model=schemas.ComprehensiveAnalysisResult)

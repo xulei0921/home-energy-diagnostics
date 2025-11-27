@@ -57,9 +57,7 @@
         <el-col :span="8">
             <el-card>
                 <h2>能源费用分布</h2>
-                <DistributionChart
-                    type="doughnut"
-                />
+                <DistributionChart/>
                 <div class="cost-detail" v-for="item in costsDistribution">
                     <div class="icon-text">
                         <span :class="getIconClass(item.bill_type)"></span>
@@ -74,7 +72,7 @@
         </el-col>
         <el-col :span="16">
             <el-card>
-                222
+                <EnergySuggestions />
             </el-card>
         </el-col>
     </el-row>
@@ -84,6 +82,7 @@
 import { computed, onMounted, ref } from 'vue';
 import TrendChart from '@/components/charts/TrendChart.vue';
 import DistributionChart from '@/components/charts/DistributionChart.vue';
+import EnergySuggestions from '@/components/EnergySuggestions.vue';
 import { CaretTop, CaretBottom, Minus, SemiSelect, Top, Bottom } from '@element-plus/icons-vue'
 import { getEnergyComparison, getEnergyTrend, getEnergyCostsDistribution } from '@/api/analysis';
 

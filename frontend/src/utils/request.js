@@ -8,7 +8,7 @@ const baseURL = import.meta.env.VITE_APP_API_BASE_URL
 const instance = axios.create({
     // 基础地址，超时时间
     baseURL,
-    timeout: 15000
+    timeout: 300000  // 增加到3分钟，以适应AI服务的响应时间
 })
 
 // 请求拦截器

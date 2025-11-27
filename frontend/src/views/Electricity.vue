@@ -53,6 +53,15 @@
             />
         </el-card>
     </div>
+    <el-row :gutter="20">
+        <el-col :span="12">
+            <el-card>
+                <h2>设备能耗占比</h2>
+                <ElectricityConsumptionChart/>
+            </el-card>
+        </el-col>
+        <el-col :span="12"></el-col>
+    </el-row>
 </template>
 
 <script setup>
@@ -60,6 +69,7 @@ import { ref, onMounted } from 'vue';
 import { Top, Bottom, SemiSelect } from '@element-plus/icons-vue'
 import { getEnergyComparison, getEnergyTrend } from '@/api/analysis';
 import TrendChart from '@/components/charts/TrendChart.vue';
+import ElectricityConsumptionChart from '@/components/charts/ElectricityConsumptionChart.vue';
 
 const electricityData = ref({})
 

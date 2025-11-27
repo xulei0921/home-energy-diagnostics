@@ -318,7 +318,9 @@ class EnhancedAnalysisService:
             "parameters": {
                 "result_format": "text",
                 "temperature": 0.3,
-                "max_tokens": 1500
+                "max_tokens": 1000,  # 减少最大令牌数以加快响应速度
+                "top_p": 0.8,      # 添加top_p参数以优化响应质量
+                "repetition_penalty": 1.1  # 添加重复惩罚以减少冗余
             }
         }
 
@@ -327,7 +329,7 @@ class EnhancedAnalysisService:
                 os.getenv("ALI_BASE_URL"),
                 headers=headers,
                 json=data,
-                timeout=60
+                timeout=30  # 减少超时时间到30秒
             )
             response.raise_for_status()
             return response.text
