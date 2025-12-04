@@ -1,5 +1,5 @@
 <template>
-    <el-page-header :icon="ArrowLeft" title="返回" @back="goBack"></el-page-header>
+    <!-- <el-page-header :icon="ArrowLeft" title="返回" @back="goBack"></el-page-header> -->
 
     <el-row class="login-page">
         <el-col :span="6" :offset="9" class="form">

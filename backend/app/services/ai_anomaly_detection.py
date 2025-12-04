@@ -1,4 +1,3 @@
-
 import json
 import requests
 import os
@@ -152,6 +151,7 @@ class AIAnomalyDetectionService:
 2. 对比同季节的历史数据，而非简单对比相邻月份
 3. recommendation中必须包含针对当前季节的具体建议
 4. reasoning必须明确说明季节性因素的影响程度
+5. recommendation可以简短一些，但是要简洁明了
 
 重要：只返回JSON对象本身，不要用```json```包裹，确保JSON格式完全正确。
 """

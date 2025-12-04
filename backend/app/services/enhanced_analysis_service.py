@@ -72,10 +72,11 @@ class EnhancedAnalysisService:
         # 生成综合AI建议（如果分析了多种能源类型）
         comprehensive_suggestions = []
         if len(energy_types) > 1 and energy_analyses:
-            comprehensive_suggestions = self._generate_comprehensive_suggestions(
-                energy_analyses, family_info_dict
+            comprehensive_suggestion = self._generate_comprehensive_suggestions(
+                db, user_id, energy_analyses, family_info_dict, latest_bill_date=energy_analyses[0].latest_bill_date
             )
-            total_suggestions.extend(comprehensive_suggestions)
+            total_suggestions.extend(comprehensive_suggestion)
+            comprehensive_suggestions.extend(comprehensive_suggestion)
 
         # 获取历史建议
         historical_suggestions = self._get_historical_suggestions(db, user_id, bill_type)
@@ -97,7 +98,8 @@ class EnhancedAnalysisService:
             overall_summary=self._generate_overall_summary(energy_analyses),
             suggestions=final_suggestions,
             analysis_date=datetime.now(),
-            analyzed_energy_types=[et.value for et in energy_types]
+            analyzed_energy_types=[et.value for et in energy_types],
+            comprehensive_suggestions=comprehensive_suggestions
         )
 
     def _analyze_single_energy_type(
@@ -135,12 +137,13 @@ class EnhancedAnalysisService:
 
         # 5. 生成AI分析和建议
         ai_analysis = self._generate_ai_energy_analysis(
-            bill_type, trend_data, comparison, device_consumption, family_info, anomaly_months
+            db, bill_type, user_id, latest_bill_date,trend_data, comparison, device_consumption, family_info, anomaly_months
         )
 
         return schemas.EnergyTypeAnalysis(
             bill_type=bill_type,
             trend_data=trend_data,
+            latest_bill_date=latest_bill_date,
             comparison=comparison,
             device_consumption=device_consumption,
             anomaly_months=anomaly_months,
@@ -150,7 +153,10 @@ class EnhancedAnalysisService:
 
     def _generate_ai_energy_analysis(
         self,
+        db: Session,
         bill_type: schemas.BillType,
+        user_id: int,
+        latest_bill_date: date,
         trend_data: List[schemas.EnergyTrendItem],
         comparison: schemas.EnergyComparison,
         device_consumption: List[schemas.DeviceEnergyConsumption],
@@ -177,7 +183,7 @@ class EnhancedAnalysisService:
                 risk_level=ai_result.get("risk_level", "medium"),
                 optimization_potential=ai_result.get("optimization_potential", "medium"),
                 seasonal_analysis=ai_result.get("seasonal_analysis", ""),
-                suggestions=self._convert_ai_suggestions(ai_result.get("suggestions", []), bill_type),
+                suggestions=self._convert_ai_suggestions(db, ai_result.get("suggestions", []), bill_type, user_id, latest_bill_date),
                 confidence_score=ai_result.get("confidence", 0.7)
             )
 
@@ -370,24 +376,37 @@ class EnhancedAnalysisService:
             print(f"AI响应解析失败: {str(e)}")
             return {}
 
-    def _convert_ai_suggestions(self, ai_suggestions: List[dict], bill_type: Optional[schemas.BillType]) -> List[schemas.EnergySavingSuggestionResponse]:
+    def _convert_ai_suggestions(self, db: Session, ai_suggestions: List[dict], bill_type: Optional[schemas.BillType], user_id: int, latest_bill_date: date) -> List[schemas.EnergySavingSuggestionResponse]:
         """转换AI建议为标准格式"""
         suggestions = []
         for i, ai_sugg in enumerate(ai_suggestions):
             try:
                 suggestion = schemas.EnergySavingSuggestionResponse(
-                    id=0,  # 临时ID
-                    user_id=0,  # 临时用户ID
+                    # id=0,  # 临时ID
+                    user_id=user_id,  # 临时用户ID
                     bill_type=bill_type or schemas.BillType.electricity,
                     suggestion_title=ai_sugg.get("title", f"节能建议{i+1}"),
                     suggestion_text=ai_sugg.get("content", ""),
-                    suggestion_date=date.today(),
+                    suggestion_date=latest_bill_date,
                     impact_rating=self._convert_priority_to_rating(ai_sugg.get("priority", "medium")),
                     is_implemented=False,
                     created_at=datetime.now(),
                     updated_at=datetime.now()
                 )
                 suggestions.append(suggestion)
+
+                db_suggestion = models.EnergySavingSuggestion(
+                    user_id=user_id,
+                    bill_type=bill_type or schemas.BillType.electricity,
+                    suggestion_title=ai_sugg.get("title", f"节能建议{i+1}"),
+                    suggestion_text=ai_sugg.get("content", ""),
+                    suggestion_date=latest_bill_date,
+                    impact_rating=self._convert_priority_to_rating(ai_sugg.get("priority", "medium"))
+                )
+                db.add(db_suggestion)
+                db.commit()
+                db.refresh(db_suggestion)
+
             except Exception as e:
                 print(f"转换建议时出错: {str(e)}")
                 continue
@@ -413,8 +432,11 @@ class EnhancedAnalysisService:
 
     def _generate_comprehensive_suggestions(
         self,
+        db: Session,
+        user_id: int,
         energy_analyses: List[schemas.EnergyTypeAnalysis],
-        family_info: dict
+        family_info: dict,
+        latest_bill_date: date
     ) -> List[schemas.EnergySavingSuggestionResponse]:
         """生成综合建议（多能源类型）"""
         try:
@@ -426,7 +448,7 @@ class EnhancedAnalysisService:
             ai_result = self._parse_ai_response(response)
 
             # 转换建议格式
-            return self._convert_ai_suggestions(ai_result.get("suggestions", []), None)
+            return self._convert_ai_suggestions(db, ai_result.get("suggestions", []), None, user_id, latest_bill_date)
 
         except Exception as e:
             print(f"生成综合建议失败: {str(e)}")

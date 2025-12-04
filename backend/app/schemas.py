@@ -216,7 +216,6 @@ class EnergySavingSuggestionUpdate(BaseModel):
 
 # 节能建议模型 - 响应
 class EnergySavingSuggestionResponse(EnergySavingSuggestionBase):
-    id: int
     user_id: int
     created_at: datetime
     updated_at: datetime
@@ -307,6 +306,7 @@ class EnergyTypeAnalysis(BaseModel):
     """单个能源类型的分析结果"""
     bill_type: BillType  # 能源类型
     trend_data: List[EnergyTrendItem]  # 趋势数据
+    latest_bill_date: datetime
     comparison: EnergyComparison  # 同比环比分析
     device_consumption: List[DeviceEnergyConsumption]  # 设备能耗
     anomaly_months: List[AnomalyMonthResult]  # 异常月份
@@ -320,6 +320,7 @@ class ComprehensiveAnalysisResult(BaseModel):
     suggestions: List[EnergySavingSuggestionResponse]  # 综合建议
     analysis_date: datetime  # 分析时间
     analyzed_energy_types: List[str]  # 已分析的能源类型
+    comprehensive_suggestions: List[EnergySavingSuggestionResponse]
 
 class LatestCostItem(BaseModel):
     bill_type: BillType

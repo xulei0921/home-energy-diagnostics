@@ -32,7 +32,8 @@ const userStore = useUserStore()
 const currentUser = ref({})
 
 const {
-    removeToken
+    removeToken,
+    setCurrentUserId
 } = userStore
 
 const router = useRouter()
@@ -67,6 +68,7 @@ const fetchCurrentUser = async () => {
         const res = await getCurrentUser()
         // console.log(res)
         currentUser.value = res
+        setCurrentUserId(res.id)
     } catch (error) {
         console.error(error)
     }

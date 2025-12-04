@@ -30,3 +30,17 @@ export const getComprehensiveAnalysis = (query_data) => {
         params: query_data
     })
 }
+
+// 检测指定能源类型的异常月份
+export const getAnomalyMonths = (bill_type) => {
+    return request.get(`/analysis/${bill_type}/anomaly-months`)
+}
+
+// 获取单种能源类型的增强分析结果
+export const getEnhancedEnergyAnalysis = (bill_type, period) => {
+    return request.get(`/analysis/${bill_type}/enhanced-analysis`, {
+        params: {
+            period: period
+        }
+    })
+}

@@ -15,6 +15,27 @@ const chartRef = ref(null)
 // 定义一个 ref 来存储 Chart 实例，方便后续销毁和更新
 const chartInstance = ref(null)
 
+const BILL_TYPE_COLOR_MAP = {
+    'electricity': {
+        bg: 'rgba(75, 192, 192, 0.7)',
+        border: 'rgba(255, 255, 255, 1)'
+    },
+    'gas': {
+        bg: 'rgba(243, 104, 18, 0.7)',
+        border: 'rgba(255, 255, 255, 1)'
+    },
+    'water': {
+        bg: 'rgba(30, 144, 255, 0.7)',
+        border: 'rgba(255, 255, 255, 1)'
+    }
+}
+
+// 默认颜色
+const DEFAULT_COLOR = {
+    bg: 'rgba(153, 102, 255, 0.7)',
+    border: 'rgba(255, 255, 255, 1)'
+}
+
 const fetchEnergyCostsDistribution = async () => {
     try {
         const res = await getEnergyCostsDistribution()
@@ -22,6 +43,7 @@ const fetchEnergyCostsDistribution = async () => {
         billData.value = res
     } catch (error) {
         console.error(error)
+        billData.value = { items: [], total_amount: 0, month: '' }
     }
 }
 
@@ -31,33 +53,48 @@ const formatChartData = (data) => {
         return { labels: [], datasets: [{ data: [] }] }
     }
 
-    const labels = data.items.map(item => {
-        // 将英文类型转换为中文
+    // const labels = data.items.map(item => {
+    //     // 将英文类型转换为中文
+    //     const typeMap = {
+    //         'electricity': '电费',
+    //         'gas': '燃气费',
+    //         'water': '水费'
+    //     }
+    //     return typeMap[item.bill_type] || item.bill_type
+    // })
+
+    // const values = data.items.map(item => item.amount)
+
+    const labels = []
+    const values = []
+    const bgColors = []
+    const borderColors = []
+
+    data.items.forEach(item => {
+        // 1. 处理标签 (英文转中文)
         const typeMap = {
             'electricity': '电费',
             'gas': '燃气费',
             'water': '水费'
         }
-        return typeMap[item.bill_type] || item.bill_type
-    })
+        labels.push(typeMap[item.bill_type] || item.bill_type)
 
-    const values = data.items.map(item => item.amount)
+        // 2. 处理数值
+        values.push(item.amount || 0)
+
+        // 3. 按 bill_type 匹配颜色
+        const colorConfig = BILL_TYPE_COLOR_MAP[item.bill_type] || DEFAULT_COLOR
+        bgColors.push(colorConfig.bg)
+        borderColors.push(colorConfig.border)
+    })
 
     return {
         labels: labels,
         datasets: [{
             label: '账单金额(元)',
             data: values,
-            backgroundColor: [
-                'rgba(75, 192, 192, 0.7)',
-                'rgba(243, 104, 18, 0.7)',
-                'rgba(30, 144, 255, 0.7)'
-            ],
-            borderColor: [
-                'rgba(255, 255, 255, 1)',
-                'rgba(255, 255, 255, 1)',
-                'rgba(255, 255, 255, 1)'
-            ],
+            backgroundColor: bgColors,
+            borderColor: borderColors,
             borderWidth: 1
         }]
     }
@@ -68,10 +105,15 @@ const initChart = () => {
     // 如果已有实例，先销毁
     if (chartInstance.value) {
         chartInstance.value.destroy()
+        chartInstance.value = null
     }
+
+    // 避免 chartRef 未渲染导致的 null 错误
+    if (!chartRef.value) return
 
     // 获取 canvas 上下文
     const ctx = chartRef.value.getContext('2d')
+    if (!ctx) return
 
     const formattedDate = formatChartData(billData.value)
 
@@ -82,6 +124,17 @@ const initChart = () => {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            // 添加事件处理以防止销毁后的事件触发
+            onHover: (event, activeElements) => {
+                if (!chartInstance.value) {
+                    return
+                }
+            },
+            onClick: (event, activeElements) => {
+                if (!chartInstance.value) {
+                    return
+                }
+            },
             plugins: {
                 legend: {
                     position: 'right'  // 图例位置
@@ -116,7 +169,11 @@ watch(
     () => billData.value,
     () => {
         if (chartRef.value) {
-            initChart()
+            try {
+                initChart()
+            } catch (error) {
+                console.error('图表初始化失败:', error)
+            }
         }
     },
     { deep: true }
@@ -124,14 +181,24 @@ watch(
 
 // 4. 在组件挂载后初始化图表
 onMounted(async () => {
-    await fetchEnergyCostsDistribution()
-    initChart()
+    try {
+        await fetchEnergyCostsDistribution()
+        initChart()
+    } catch (error) {
+        console.error('组件挂载时初始化失败:', error)
+    }
 })
 
 // 6. 在组件卸载前销毁图表实例，防止内存泄露
 onUnmounted(() => {
     if (chartInstance.value) {
-        chartInstance.value.destroy()
+        try {
+            chartInstance.value.destroy()
+        } catch (error) {
+            console.warn('图表销毁时发生错误:', error)
+        } finally {
+            chartInstance.value = null
+        }
     }
 })
 </script>

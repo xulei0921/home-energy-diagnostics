@@ -30,7 +30,7 @@ const isLoading = ref(false)
 const fetchDeviceConsumption = async () => {
     try {
         isLoading.value = true
-        const res = await getDeviceConsumption('electricity')
+        const res = await getDeviceConsumption('water')
         console.log(res)
         deviceData.value = res
     } catch (error) {
@@ -58,7 +58,7 @@ const formatChartData = (data) => {
     return {
         labels: data.map(item => item.device_name),
         datasets: [{
-            label: '设备能耗 (kWh)',
+            label: '设备能耗 (m³)',
             data: data.map(item => item.consumption),
             backgroundColor: backgroundColor,
             borderColor: borderColor,
@@ -133,7 +133,7 @@ const initChart = () => {
                             const device = formattedData.datasets[0].deviceData[context.dataIndex]
                             return [
                                 // `${device.name}`,
-                                `月使用能耗: ${device.monthlyUsage}kWh (${device.consumption}%)`,
+                                `月使用能耗: ${device.monthlyUsage}m³ (${device.consumption}%)`,
                                 // `月使用时长: ${device.monthlyUsage}小时`
                             ]
                         }

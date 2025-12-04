@@ -11,8 +11,8 @@
                 </el-select>
                 <el-select v-model="selectedPeriod" placeholder="分析周期" style="width: 120px; margin-right: 10px;">
                     <el-option label="月度" value="monthly"></el-option>
-                    <el-option label="季度" value="quarterly"></el-option>
-                    <el-option label="年度" value="yearly"></el-option>
+                    <el-option label="季度" value="quarter"></el-option>
+                    <el-option label="年度" value="annual"></el-option>
                 </el-select>
                 <el-button type="primary" @click="fetchSuggestions" :loading="isLoading">
                     生成建议
@@ -20,7 +20,11 @@
             </div>
         </div>
 
-        <div v-loading="isLoading" class="suggestions-content">
+        <div
+            v-loading="isLoading"
+            element-loading-text="分析数据量较大，请耐心等待..."
+            class="suggestions-content"
+        >
             <!-- 无数据状态 -->
             <div v-if="!isLoading && (!suggestionsData || !suggestionsData.energy_analyses || suggestionsData.energy_analyses.length === 0)" 
                  class="no-data-container">
@@ -62,7 +66,7 @@
                             <div class="energy-analysis-content">
                                 <!-- AI分析 -->
                                 <div class="ai-analysis" v-if="analysis.ai_analysis">
-                                    <h5>智能分析</h5>
+                                    <span>智能分析</span>
                                     <div class="ai-analysis-item">
                                         <p>{{ analysis.ai_analysis.overall_assessment }}</p>
                                         
@@ -147,7 +151,28 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getComprehensiveAnalysis } from '@/api/analysis'
+import { getCurrentUser } from '@/api/user'
 import { Warning, InfoFilled, SuccessFilled } from '@element-plus/icons-vue'
+import { useDashboardStore } from '@/stores/dashboard'
+import { useUserStore } from '@/stores'
+import { storeToRefs } from 'pinia'
+
+const dashboardStore = useDashboardStore()
+const userStore = useUserStore()
+
+const {
+    userId,
+    dashboardSuggestionsData
+} = storeToRefs(dashboardStore)
+
+const {
+    setUserId,
+    setDashboardSuggestionsData
+} = dashboardStore
+
+const {
+    currentUserId
+} = storeToRefs(userStore)
 
 const isLoading = ref(false)
 const suggestionsData = ref(null)
@@ -168,7 +193,10 @@ const fetchSuggestions = async () => {
         }
         
         const response = await getComprehensiveAnalysis(params)
+        const userData = await getCurrentUser()
         suggestionsData.value = response
+        setUserId(userData.id)
+        setDashboardSuggestionsData(response)
         
         // 设置默认激活的标签页
         if (response.energy_analyses && response.energy_analyses.length > 0) {
@@ -266,13 +294,25 @@ const getPriorityText = (priority) => {
 
 // 组件挂载时获取默认建议
 onMounted(() => {
-    fetchSuggestions()
+    // fetchSuggestions()
+    if (currentUserId.value === userId.value) {
+        suggestionsData.value = dashboardSuggestionsData.value
+        if (suggestionsData.value.energy_analyses && suggestionsData.value.energy_analyses.length > 0) {
+            activeEnergyTab.value = suggestionsData.value.energy_analyses[0].bill_type
+        }
+    }
 })
 </script>
 
 <style scoped>
+/* * {
+    margin: 0;
+    padding: 0;
+} */
+
 .energy-suggestions-container {
-    height: 100%;
+    overflow-y: auto;
+    height: 422px;
     width: 100%;
 }
 

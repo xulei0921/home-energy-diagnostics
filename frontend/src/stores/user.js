@@ -5,6 +5,11 @@ import { isTokenExpired } from "@/utils/jwt";
 // 用户模块 token setToken removeToken
 export const useUserStore = defineStore('big-user', () => {
     const token = ref('')
+    const currentUserId = ref(0)
+
+    const setCurrentUserId = (newId) => {
+        currentUserId.value = newId
+    }
 
     const setToken = (newToken) => {
         token.value = newToken
@@ -28,7 +33,9 @@ export const useUserStore = defineStore('big-user', () => {
 
     return {
         token,
+        currentUserId,
         setToken,
+        setCurrentUserId,
         removeToken,
         isLogin
     }

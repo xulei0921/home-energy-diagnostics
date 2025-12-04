@@ -53,15 +53,51 @@
             />
         </el-card>
     </div>
+    <el-row :gutter="20">
+        <el-col :span="12">
+            <el-card>
+                <h2>设备能耗占比</h2>
+                <WaterConsumptionChart/>
+            </el-card>
+        </el-col>
+        <el-col :span="12">
+            <el-card style="height: 475px; overflow-y: auto;">
+                <div class="detect-header">
+                    <h2>异常用水月份检测</h2>
+                    <el-button :loading="isLoadingAnomaly" @click="fetchAnomalyMonths()" style="padding: 0 10px;" type="primary">分析</el-button>
+                </div>
+                <div
+                    class="detect-container"
+                    v-loading="isLoadingAnomaly"
+                    element-loading-text="分析数据量较大，请耐心等待..."
+                >
+                    <div v-if="anomalyMonthsData.length === 0 && !isLoadingAnomaly" class="no-data-container">
+                        <el-empty description="暂无异常用水数据"></el-empty>
+                    </div>
+                    <el-card v-else v-for="item in anomalyMonthsData" shadow="never" :class="getDetectCardStyle(item.severity)">
+                        <div class="detect-title">
+                            <h4>{{ item.month }}月用水异常</h4>
+                            <el-tag style="padding: 10px;" round effect="dark" :type="getDetectTagType(item.severity)">{{ getDetectTagText(item.severity) }}</el-tag>
+                        </div>
+                        <span>用水量达到{{ item.usage }}m³</span>
+                        <span v-for="recommendation in item.recommendations">,{{ recommendation }}</span>
+                    </el-card>
+                </div>
+            </el-card>
+        </el-col>
+    </el-row>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { Top, Bottom, SemiSelect } from '@element-plus/icons-vue'
-import { getEnergyComparison, getEnergyTrend } from '@/api/analysis';
+import { getEnergyComparison, getEnergyTrend, getAnomalyMonths } from '@/api/analysis';
 import TrendChart from '@/components/charts/TrendChart.vue';
+import WaterConsumptionChart from '@/components/charts/WaterConsumptionChart.vue';
 
 const waterData = ref({})
+const isLoadingAnomaly = ref(false)
+const anomalyMonthsData = ref([])
 
 const chartData = ref({
     labels: [],
@@ -166,6 +202,37 @@ const trendIcon = (rate) => {
     }
 }
 
+const getDetectCardStyle = (severity) => {
+    switch (severity) {
+        case 'high':
+            return 'severity-high'
+        case 'medium':
+            return 'severity-medium'
+        case 'low':
+            return 'severity-low'
+    }
+}
+
+const getDetectTagType = (severity) => {
+    switch (severity) {
+        case 'high':
+            return 'danger'
+        case 'medium':
+            return 'warning'
+        case 'low':
+            return 'primary'
+    }
+}
+
+const getDetectTagText = (severity) => {
+    const text_map = {
+        'high': '高',
+        'medium': '中',
+        'low': '低'
+    }
+    return text_map[severity]
+}
+
 const fetchEnergyComparison = async (trend_data) => {
     try {
         const res = await getEnergyComparison(trend_data)
@@ -199,6 +266,19 @@ const fetchEnergyTrendData = async () => {
     chartData.value.datasets[1].data = waterAmountData
 }
 
+const fetchAnomalyMonths = async () => {
+    try {
+        isLoadingAnomaly.value = true
+        const res = await getAnomalyMonths('water')
+        console.log(res)
+        anomalyMonthsData.value = res
+    } catch (error) {
+        console.error(error)
+    } finally {
+        isLoadingAnomaly.value = false
+    }
+}
+
 onMounted(() => {
     fetchEnergyComparison({
         period: 'monthly',
@@ -210,6 +290,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
+* {
+    margin: 0;
+    padding: 0;
+}
+
 .water-usage {
     height: 160px;
     background-color: rgb(30, 144, 255);
@@ -246,5 +331,44 @@ onMounted(() => {
 
 .line-chart-container {
     margin: 20px 0;
+}
+
+.detect-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.detect-container {
+    margin-top: 20px;
+    min-height: 350px;
+}
+
+.detect-title {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.no-data-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 363px;
+}
+
+.severity-high {
+
+    background-color: #FEF2F2;
+    border: 1px solid #FECACA;
+}
+
+.severity-medium {
+    background-color: #FEFCE8;
+    border: 1px solid #FEF08A;
+}
+
+.severity-low {
+    background-color: #EFF6FF;
+    border: 1px solid #BFDBFE;
 }
 </style>

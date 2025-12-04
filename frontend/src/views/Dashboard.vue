@@ -53,9 +53,9 @@
         />
         </el-card>
     </div>
-    <el-row :gutter="20">
+    <el-row :gutter="20" align="stretch">
         <el-col :span="8">
-            <el-card>
+            <el-card style="height: 100%;">
                 <h2>能源费用分布</h2>
                 <DistributionChart/>
                 <div class="cost-detail" v-for="item in costsDistribution">
