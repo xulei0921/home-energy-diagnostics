@@ -10,6 +10,7 @@ class BillType(str, enum.Enum):
     electricity = "electricity"
     gas = "gas"
     water = "water"
+    comprehensive = "comprehensive"
 
 class DeviceType(str, enum.Enum):
     electricity = "electricity"

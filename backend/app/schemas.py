@@ -8,6 +8,7 @@ class BillType(str, Enum):
     electricity = "electricity"
     gas = "gas"
     water = "water"
+    comprehensive = "comprehensive"
 
 # 设备类型枚举
 class DeviceType(str, Enum):
@@ -216,9 +217,18 @@ class EnergySavingSuggestionUpdate(BaseModel):
 
 # 节能建议模型 - 响应
 class EnergySavingSuggestionResponse(EnergySavingSuggestionBase):
+    id: int
     user_id: int
     created_at: datetime
     updated_at: datetime
+
+class PaginatedSuggestionResponse(BaseModel):
+    """分页节能建议模型"""
+    items: List[EnergySavingSuggestionResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
 
 # 分析结构响应
 class EnergyTrendItem(BaseModel):

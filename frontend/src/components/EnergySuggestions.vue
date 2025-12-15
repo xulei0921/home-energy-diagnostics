@@ -1,9 +1,9 @@
 <template>
     <div class="energy-suggestions-container">
         <div class="suggestions-header">
-            <h3>智能节能建议</h3>
+            <h2 style="margin: 0; padding: 0;">智能节能建议</h2>
             <div class="header-controls">
-                <el-select v-model="selectedBillType" placeholder="选择能源类型" style="width: 120px; margin-right: 10px;">
+                <el-select v-model="selectedBillType" placeholder="选择能源类型" style="width: 150px; margin-right: 10px;">
                     <el-option label="全部" value=""></el-option>
                     <el-option label="电力" value="electricity"></el-option>
                     <el-option label="燃气" value="gas"></el-option>
@@ -34,11 +34,11 @@
             <!-- 有数据状态 -->
             <div v-else-if="suggestionsData" class="suggestions-data">
                 <!-- 整体评估 -->
-                <div class="overall-assessment" v-if="suggestionsData.overall_assessment">
-                    <h4>整体评估</h4>
+                <div class="overall-assessment" v-if="suggestionsData.overall_summary">
+                    <h3>整体评估</h3>
                     <div class="assessment-content">
-                        <p>{{ suggestionsData.overall_assessment }}</p>
-                        <div class="risk-indicator">
+                        <p>{{ suggestionsData.overall_summary }}</p>
+                        <!-- <div class="risk-indicator">
                             <span>风险等级：</span>
                             <el-tag :type="getRiskTagType(suggestionsData.risk_level)">
                                 {{ getRiskLevelText(suggestionsData.risk_level) }}
@@ -49,13 +49,13 @@
                             <el-tag :type="getOptimizationTagType(suggestionsData.optimization_potential)">
                                 {{ getOptimizationPotentialText(suggestionsData.optimization_potential) }}
                             </el-tag>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
 
                 <!-- 能源类型分析 -->
                 <div class="energy-analyses" v-if="suggestionsData.energy_analyses && suggestionsData.energy_analyses.length > 0">
-                    <h4>能源类型分析</h4>
+                    <h3>能源类型分析</h3>
                     <el-tabs v-model="activeEnergyTab" type="card">
                         <el-tab-pane 
                             v-for="analysis in suggestionsData.energy_analyses" 
@@ -66,12 +66,12 @@
                             <div class="energy-analysis-content">
                                 <!-- AI分析 -->
                                 <div class="ai-analysis" v-if="analysis.ai_analysis">
-                                    <span>智能分析</span>
+                                    <span style="font-weight: 600;">智能分析</span>
                                     <div class="ai-analysis-item">
                                         <p>{{ analysis.ai_analysis.overall_assessment }}</p>
                                         
                                         <div v-if="analysis.ai_analysis.key_insights && analysis.ai_analysis.key_insights.length > 0" class="key-insights">
-                                            <h6>关键洞察</h6>
+                                            <h3>关键洞察</h3>
                                             <ul>
                                                 <li v-for="(insight, index) in analysis.ai_analysis.key_insights" :key="index">
                                                     {{ insight }}
@@ -80,35 +80,42 @@
                                         </div>
 
                                         <div v-if="analysis.ai_analysis.seasonal_analysis" class="seasonal-analysis">
-                                            <h6>季节性分析</h6>
-                                            <p>{{ analysis.ai_analysis.seasonal_analysis }}</p>
+                                            <h3>季节性分析</h3>
+                                            <p style="font-size: 16px;">{{ analysis.ai_analysis.seasonal_analysis }}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- 具体建议 -->
                                 <div class="suggestions-list" v-if="analysis.suggestions && analysis.suggestions.length > 0">
-                                    <h5>节能建议</h5>
+                                    <h3>节能建议</h3>
                                     <div class="suggestion-cards">
                                         <el-card 
                                             v-for="(suggestion, index) in analysis.ai_analysis.suggestions" 
                                             :key="index"
-                                            class="suggestion-card"
+                                            :class="getSuggestionStyle(suggestion.impact_rating)"
                                             shadow="hover"
                                         >
                                             <div class="suggestion-header">
-                                                <el-icon class="suggestion-icon">
-                                                    <!-- <component :is="getSuggestionIcon(suggestion.priority)" /> -->
-                                                    <span>{{ suggestion.impact_rating }}</span>
-                                                </el-icon>
-                                                <!-- <span class="suggestion-priority">{{ getPriorityText(suggestion.priority) }}</span> -->
+                                                <div class="suggestion-title">
+                                                    <div style="font-weight: 500;">{{ suggestion.suggestion_title }}</div>
+                                                </div>
+                                                <div class="rate-and-date">
+                                                    <span class="suggestion-rating">
+                                                        影响等级: 
+                                                        <el-rate
+                                                            v-model="suggestion.impact_rating"
+                                                            disabled
+                                                            :icons="icons"
+                                                            :void-icon="Warning"
+                                                            :colors="['#67c23a', '#FF9900', '#FF0000']"
+                                                        ></el-rate>
+                                                    </span>
+                                                    <span class="suggestion-date">目标账单日期:{{ suggestion.suggestion_date.slice(0, 7) }}</span>
+                                                </div>
                                             </div>
                                             <div class="suggestion-content">
-                                                <!-- <p>{{ suggestion.description }}</p> -->
                                                 <p>{{ suggestion.suggestion_text }}</p>
-                                                <!-- <div v-if="suggestion.potential_savings" class="potential-savings">
-                                                    预计节省: {{ suggestion.potential_savings }}
-                                                </div> -->
                                             </div>
                                         </el-card>
                                     </div>
@@ -119,23 +126,35 @@
                 </div>
 
                 <!-- 综合建议 -->
-                <div class="general-suggestions" v-if="suggestionsData.general_suggestions && suggestionsData.general_suggestions.length > 0">
-                    <h4>综合建议</h4>
+                <div class="general-suggestions" v-if="suggestionsData.comprehensive_suggestions && suggestionsData.comprehensive_suggestions.length > 0">
+                    <h3>综合建议</h3>
                     <div class="suggestion-cards">
                         <el-card 
-                            v-for="(suggestion, index) in suggestionsData.general_suggestions" 
+                            v-for="(suggestion, index) in suggestionsData.comprehensive_suggestions" 
                             :key="index"
-                            class="suggestion-card"
+                            :class="getSuggestionStyle(suggestion.impact_rating)"
                             shadow="hover"
                         >
                             <div class="suggestion-header">
-                                <el-icon class="suggestion-icon">
-                                    <component :is="getSuggestionIcon(suggestion.priority)" />
-                                </el-icon>
-                                <span class="suggestion-priority">{{ getPriorityText(suggestion.priority) }}</span>
+                                <div class="suggestion-title">
+                                    <div style="font-weight: 500;">{{ suggestion.suggestion_title }}</div>
+                                </div>
+                                <div class="rate-and-date">
+                                    <span class="suggestion-rating">
+                                        影响等级: 
+                                        <el-rate
+                                            v-model="suggestion.impact_rating"
+                                            disabled
+                                            :icons="icons"
+                                            :void-icon="Warning"
+                                            :colors="['#67c23a', '#FF9900', '#FF0000']"
+                                        ></el-rate>
+                                    </span>
+                                    <span class="suggestion-date">目标账单日期:{{ suggestion.suggestion_date.slice(0, 7) }}</span>
+                                </div>
                             </div>
                             <div class="suggestion-content">
-                                <p>{{ suggestion.description }}</p>
+                                <p>{{ suggestion.suggestion_text }}</p>
                                 <div v-if="suggestion.potential_savings" class="potential-savings">
                                     预计节省: {{ suggestion.potential_savings }}
                                 </div>
@@ -157,6 +176,7 @@ import { useDashboardStore } from '@/stores/dashboard'
 import { useUserStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 
+const icons = [Warning, Warning, Warning]
 const dashboardStore = useDashboardStore()
 const userStore = useUserStore()
 
@@ -232,63 +252,14 @@ const getEnergyTypeText = (billType) => {
     }
 }
 
-// 获取风险等级标签类型
-const getRiskTagType = (riskLevel) => {
-    switch(riskLevel) {
-        case 'high': return 'danger'
-        case 'medium': return 'warning'
-        case 'low': return 'SuccessFilled'
-        default: return 'info'
-    }
-}
-
-// 获取风险等级文本
-const getRiskLevelText = (riskLevel) => {
-    switch(riskLevel) {
-        case 'high': return '高'
-        case 'medium': return '中'
-        case 'low': return '低'
-        default: return '未知'
-    }
-}
-
-// 获取优化潜力标签类型
-const getOptimizationTagType = (potential) => {
-    switch(potential) {
-        case 'high': return 'SuccessFilled'
-        case 'medium': return 'warning'
-        case 'low': return 'info'
-        default: return 'info'
-    }
-}
-
-// 获取优化潜力文本
-const getOptimizationPotentialText = (potential) => {
-    switch(potential) {
-        case 'high': return '高'
-        case 'medium': return '中'
-        case 'low': return '低'
-        default: return '未知'
-    }
-}
-
-// 获取优先级图标
-const getSuggestionIcon = (priority) => {
-    switch(priority) {
-        case 'high': return Warning
-        case 'medium': return InfoFilled
-        case 'low': return SuccessFilled
-        default: return InfoFilled
-    }
-}
-
-// 获取优先级文本
-const getPriorityText = (priority) => {
-    switch(priority) {
-        case 'high': return '高优先级'
-        case 'medium': return '中优先级'
-        case 'low': return '低优先级'
-        default: return '未知'
+const getSuggestionStyle = (impact_rating) => {
+    switch (impact_rating) {
+        case 5:
+            return 'suggestion-item-high'
+        case 3:
+            return 'suggestion-item-medium'
+        case 1:
+            return 'suggestion-item-low'
     }
 }
 
@@ -353,13 +324,18 @@ onMounted(() => {
 .energy-analyses,
 .general-suggestions {
     margin-bottom: 20px;
+    font-size: 18px;
 }
 
-.overall-assessment h4,
-.energy-analyses h4,
-.general-suggestions h4 {
+:deep(.el-tabs__item) {
+    font-size: 17px;
+}
+
+.overall-assessment h3,
+.energy-analyses h3,
+.general-suggestions h3 {
     margin-bottom: 10px;
-    font-size: 16px;
+    font-size: 19px;
     font-weight: 600;
 }
 
@@ -368,6 +344,7 @@ onMounted(() => {
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 15px;
+    font-size: 18px;
 }
 
 .risk-indicator,
@@ -390,12 +367,13 @@ onMounted(() => {
 .ai-analysis,
 .suggestions-list {
     margin-bottom: 20px;
+    font-size: 18px;
 }
 
-.ai-analysis h5,
-.suggestions-list h5 {
+.ai-analysis h3,
+.suggestions-list h3 {
     margin-bottom: 10px;
-    font-size: 14px;
+    font-size: 19px;
     font-weight: 600;
 }
 
@@ -404,10 +382,10 @@ onMounted(() => {
     margin-top: 10px;
 }
 
-.key-insights h6,
-.seasonal-analysis h6 {
+.key-insights h3,
+.seasonal-analysis h3 {
     margin-bottom: 5px;
-    font-size: 13px;
+    font-size: 19px;
     font-weight: 600;
 }
 
@@ -417,8 +395,8 @@ onMounted(() => {
 }
 
 .key-insights li {
-    margin-bottom: 5px;
-    font-size: 13px;
+    margin-bottom: 10px;
+    font-size: 16px;
 }
 
 .seasonal-analysis p {
@@ -428,7 +406,7 @@ onMounted(() => {
 
 .suggestion-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill);
     gap: 15px;
 }
 
@@ -437,9 +415,10 @@ onMounted(() => {
 }
 
 .suggestion-header {
-    display: flex;
+    /* display: flex; */
     align-items: center;
     margin-bottom: 10px;
+    /* justify-content: space-between; */
 }
 
 .suggestion-icon {
@@ -453,7 +432,7 @@ onMounted(() => {
 }
 
 .suggestion-content p {
-    font-size: 13px;
+    font-size: 16px;
     line-height: 1.5;
     margin-bottom: 10px;
 }
@@ -462,5 +441,34 @@ onMounted(() => {
     font-size: 12px;
     color: #67C23A;
     font-weight: 600;
+}
+
+.suggestion-item-high {
+    background-color: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.suggestion-item-medium {
+    background-color: #FEFCE8;
+    border: 1px solid #FEF08A;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.suggestion-item-low {
+    background-color: #C8E6C9;
+    border: 1px solid #a8c7a9;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.rate-and-date {
+    font-size: 17px;
+}
+
+.suggestion-date {
+    margin-left: 10px;
 }
 </style>

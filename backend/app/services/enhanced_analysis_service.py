@@ -384,7 +384,7 @@ class EnhancedAnalysisService:
                 suggestion = schemas.EnergySavingSuggestionResponse(
                     # id=0,  # 临时ID
                     user_id=user_id,  # 临时用户ID
-                    bill_type=bill_type or schemas.BillType.electricity,
+                    bill_type=bill_type or schemas.BillType.comprehensive,
                     suggestion_title=ai_sugg.get("title", f"节能建议{i+1}"),
                     suggestion_text=ai_sugg.get("content", ""),
                     suggestion_date=latest_bill_date,
@@ -397,7 +397,7 @@ class EnhancedAnalysisService:
 
                 db_suggestion = models.EnergySavingSuggestion(
                     user_id=user_id,
-                    bill_type=bill_type or schemas.BillType.electricity,
+                    bill_type=bill_type or schemas.BillType.comprehensive,
                     suggestion_title=ai_sugg.get("title", f"节能建议{i+1}"),
                     suggestion_text=ai_sugg.get("content", ""),
                     suggestion_date=latest_bill_date,

@@ -74,7 +74,7 @@
                     <div v-if="anomalyMonthsData.length === 0 && !isLoadingAnomaly" class="no-data-container">
                         <el-empty description="暂无异常用电数据"></el-empty>
                     </div>
-                    <el-card v-else v-for="item in anomalyMonthsData" shadow="never" :class="getDetectCardStyle(item.severity)">
+                    <el-card v-else v-for="item in anomalyMonthsData" shadow="hover" :class="getDetectCardStyle(item.severity)">
                         <div class="detect-title">
                             <h4>{{ item.year }}年{{ item.month }}月用电异常</h4>
                             <el-tag style="padding: 10px;" round effect="dark" :type="getDetectTagType(item.severity)">{{ getDetectTagText(item.severity) }}</el-tag>
@@ -117,17 +117,20 @@
                                     <!-- 整体评估 -->
                                     <div class="overview-item">
                                         <el-tag type="primary" size="large" class="item-label">整体评估</el-tag>
-                                        <p class="item-content">{{ suggestionData.overall_assessment }}</p>
+                                        <p v-if="suggestionData?.overall_assessment" class="item-content">{{ suggestionData.overall_assessment }}</p>
+                                        <p v-else class="item-content">暂无整体评估</p>
                                     </div>
 
                                     <!-- 风险等级 -->
                                     <div class="overview-item">
                                         <el-tag type="warning" size="large" class="item-label">风险等级</el-tag>
                                         <el-badge
+                                            v-if="suggestionData?.risk_level"
                                             :type="riskLevelType(suggestionData.risk_level)"
                                             :value="riskLevelText(suggestionData.risk_level)"
                                             class="risk-badge"
                                         ></el-badge>
+                                        <p v-else class="item-content">暂无风险等级</p>
                                     </div>
 
                                     <!-- 优化潜力 -->
@@ -138,11 +141,13 @@
                                             class="item-label"
                                         >优化潜力</el-tag>
                                         <el-progress
+                                            v-if="suggestionData?.optimization_potential"
                                             :percentage="optimizationPotentialPercent(suggestionData.optimization_potential)"
                                             :status="optimizationStatus(suggestionData.optimization_potential)"
                                             text-inside
                                             stroke-width="20"
                                         ></el-progress>
+                                        <p v-else class="item-content">暂无优化潜力</p>
                                     </div>
 
                                     <!-- 季节分析 -->
@@ -152,16 +157,21 @@
                                             size="large"
                                             class="item-label"
                                         >季节因素分析</el-tag>
-                                        <p class="item-content">{{ suggestionData.seasonal_analysis }}</p>
+                                        <p v-if="suggestionData?.seasonal_analysis" class="item-content">{{ suggestionData.seasonal_analysis }}</p>
+                                        <p v-else class="item-content">暂无季节因素分析</p>
                                     </div>
 
                                     <!-- 关键洞察 -->
                                     <div class="key-insights">
                                         <el-collapse>
                                             <el-collapse-item title="关键洞察">
-                                                <div v-for="insight in suggestionData.key_insights" class="insight-item">
-                                                     <el-icon class="insight-icon"><Search /></el-icon>
+                                                <div v-if="suggestionData?.key_insights && suggestionData?.key_insights.length !== 0" v-for="insight in suggestionData.key_insights" class="insight-item">
+                                                     <el-icon class="insight-icon"><Warning /></el-icon>
                                                     <span>{{ insight }}</span>
+                                                </div>
+                                                <div v-else>
+                                                    <el-icon class="insight-icon"><Hide /></el-icon>
+                                                    <span>暂无关键洞察</span>
                                                 </div>
                                             </el-collapse-item>
                                         </el-collapse>
@@ -170,7 +180,7 @@
                             </el-card>
                             <el-card class="suggestion-card">
                                 <h3>最新节能建议</h3>
-                                <div :class="getSuggestionStyle(suggestion.impact_rating)" v-for="suggestion in suggestionData.suggestions">
+                                <div :class="getSuggestionStyle(suggestion.impact_rating)" v-if="suggestionData?.suggestions && suggestionData?.suggestions.length !== 0" v-for="suggestion in suggestionData.suggestions">
                                     <div class="suggestion-header">
                                         <div class="suggestion-title">
                                             {{ suggestion.suggestion_title }}
@@ -193,11 +203,129 @@
                                         {{ suggestion.suggestion_text }}
                                     </div>
                                 </div>
+                                <div v-else class="no-data-container">
+                                    <el-empty description="暂无最新节能建议"></el-empty>
+                                </div>
                             </el-card>
                         </div>
                     </div>
                 </el-tab-pane>
-                <el-tab-pane label="所有历史建议"></el-tab-pane>
+                <el-tab-pane label="所有历史建议">
+                    <el-form
+                        ref="form"
+                        :model="filterForm"
+                    >
+                        <el-row :gutter="25">
+                            <el-col :span="7">
+                                <el-form-item label="目标账单日期">
+                                    <el-date-picker
+                                        type="month"
+                                        v-model="filterForm.suggestion_date"
+                                        value-format="YYYY-MM-DD"
+                                        placeholder="请选择日期"
+                                    ></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="7">
+                                <el-form-item label="影响程度">
+                                    <el-select
+                                        v-model="filterForm.impact_rating"
+                                        clearable
+                                    >   
+                                        <el-option label="低" :value="1"></el-option>
+                                        <el-option label="中" :value="3"></el-option>
+                                        <el-option label="高" :value="5"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="7">
+                                <el-form-item label="是否实施">
+                                    <el-select
+                                        v-model="filterForm.is_implemented"
+                                        clearable
+                                    >
+                                        <el-option label="是" :value="1"></el-option>
+                                        <el-option label="否" :value="0"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="3">
+                                <el-form-item>
+                                    <el-button
+                                        style="padding: 10px 13px;"
+                                        type="info"
+                                        plain
+                                        @click="handleReset"
+                                        v-loading="isLoadingSuggestionList"
+                                    >重置</el-button>
+                                    <el-button
+                                        style="padding: 10px 13px;"
+                                        type="primary"
+                                        @click="handleSearch"
+                                        v-loading="isLoadingSuggestionList"
+                                    >搜索</el-button>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                    </el-form>
+
+                    <el-table
+                        style="margin-top: 20px;"
+                        v-loading="isLoadingSuggestionList"
+                        :data="tableData"
+                    >
+                        <el-table-column label="目标账单日期">
+                            <template #default="scope">
+                                <span>{{ formatMonth(scope.row.suggestion_date) }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="suggestion_title" label="建议标题"></el-table-column>
+                        <el-table-column prop="suggestion_text" label="建议内容" header-align="center"></el-table-column>
+                        <el-table-column label="影响程度" align="center">
+                            <template #default="scope">
+                                <!-- 动态渲染影响程度 -->
+                                <span>
+                                    {{ getImpactRatingText(scope.row.impact_rating) }}
+                                </span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="是否实施" align="center">
+                            <template #default="scope">
+                                <span>{{ getImplementedText(scope.row.is_implemented) }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" align="center">
+                            <template #default="scope">
+                                <el-switch
+                                    style="margin-right: 20px;"
+                                    v-model="scope.row.is_implemented"
+                                    inline-prompt
+                                    active-text="已实施"
+                                    inactive-text="未实施"
+                                    @change="handleChange(scope.row)"
+                                ></el-switch>
+                                <el-button
+                                    type="danger"
+                                    text
+                                    :icon="Delete"
+                                    @click="handleDelete(scope.row.id)"
+                                >删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+
+                    <div class="table-pagination">
+                        <el-pagination
+                            layout="total, sizes, prev, pager, next, jumper"
+                            :total="totalCount"
+                            v-model:current-page="filterForm.page"
+                            v-model:page-size="filterForm.page_size"
+                            :page-sizes="[5, 10, 20, 30]"
+                            @size-change="handleSizeChange"
+                            @current-change="handleCurrentChange"
+                        ></el-pagination>
+                    </div>
+                </el-tab-pane>
             </el-tabs>
         </el-card>
     </div>
@@ -207,9 +335,10 @@
 import { ref, onMounted } from 'vue';
 import { useElectricityStore } from '@/stores/electricity';
 import { useUserStore } from '@/stores';
-import { Top, Bottom, SemiSelect, Refresh, Search, Warning, ChatDotRound, ChatLineRound, ChatRound } from '@element-plus/icons-vue'
+import { Top, Bottom, SemiSelect, Refresh, Search, Warning, Delete, Hide } from '@element-plus/icons-vue'
 import { getEnergyComparison, getEnergyTrend, getAnomalyMonths, getEnhancedEnergyAnalysis } from '@/api/analysis';
-import { getCurrentUser } from '@/api/user'; 
+import { getCurrentUser } from '@/api/user';
+import { getSuggestion, updateSuggestion, deleteSuggestion } from '@/api/suggestion';
 import TrendChart from '@/components/charts/TrendChart.vue';
 import ElectricityConsumptionChart from '@/components/charts/ElectricityConsumptionChart.vue';
 import { storeToRefs } from 'pinia';
@@ -239,8 +368,29 @@ const {
 const electricityData = ref({})
 const anomalyMonthsData = ref([])
 const suggestionData = ref({})
+const tableData = ref([])
 const isLoadingAnomaly = ref(false)
 const isLoadingSuggestion = ref(false)
+const isLoadingSuggestionList = ref(false)
+const totalCount = ref(0)
+
+const filterForm = ref({
+    bill_type: 'electricity',
+    suggestion_date: null,
+    impact_rating: null,
+    is_implemented: null,
+    page: 1,
+    page_size: 5
+})
+
+const updateForm = ref({
+    bill_type: 'electricity',
+    suggestion_title: null,
+    suggestion_text: null,
+    suggestion_date: null,
+    impact_rating: null,
+    is_implemented: null
+})
 
 const chartData = ref({
     labels: [],
@@ -414,8 +564,33 @@ const optimizationPotentialPercent = (optimization_potential) => {
     return potential_map[optimization_potential]
 }
 
+const getImpactRatingText = (impact_rating) => {
+    const impact_map = {
+        5: '高',
+        3: '中',
+        1: '低' 
+    }
+    return impact_map[impact_rating]
+}
+
+const getImplementedText = (is_implemented) => {
+    const implemented_map = {
+        false: '否',
+        true: '是'
+    }
+    return implemented_map[is_implemented]
+}
+
 const optimizationStatus = (optimization_potential) => {
     return optimization_potential === 'high' ? 'success' : 'processing'
+}
+
+const formatMonth = (dateString) => {
+    if(!dateString) return ''
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    return `${year}-${month}`
 }
 
 const isEmptyObject = (obj) => {
@@ -492,6 +667,110 @@ const fetchEnhancedEnergyAnalysis = async () => {
     }
 }
 
+const fetchSuggestion = async () => {
+    try {
+        isLoadingSuggestionList.value = true
+        const res = await getSuggestion(filterForm.value)
+        // console.log(res)
+        tableData.value = res.items
+        totalCount.value = res.total
+    } catch (error) {
+        console.error(error)
+    } finally {
+        isLoadingSuggestionList.value = false
+    }
+}
+
+const handleSearch = () => {
+    fetchSuggestion(filterForm.value)
+}
+
+const handleReset = () => {
+    filterForm.value = {
+        bill_type: 'electricity',
+        suggestion_date: null,
+        impact_rating: null,
+        is_implemented: null,
+        page: 1,
+        page_size: 5
+    }
+    fetchSuggestion(filterForm.value)
+}
+
+// 当分页器页面大小发生改变时
+const handleSizeChange = () => {
+    filterForm.value.page = 1
+    fetchSuggestion(filterForm.value)
+}
+
+// 当分页器页码发生改变时
+const handleCurrentChange = () => {
+    fetchSuggestion(filterForm.value)
+}
+
+const handleChange = async (row) => {
+    try {
+        // console.log(row)
+        updateForm.value = {
+            bill_type: row.bill_type,
+            suggestion_title: row.suggestion_title,
+            suggestion_text: row.suggestion_text,
+            suggestion_date: row.suggestion_date,
+            impact_rating: row.impact_rating,
+            is_implemented: row.is_implemented
+        }
+        // 弹出确认对话框
+        await ElMessageBox.confirm(
+            `确定要将「${row.suggestion_title}」的状态修改为「${row.is_implemented ? '已实施' : '未实施'}」吗?`,
+            '状态修改确认',
+            {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning',
+            }
+        )
+        await updateSuggestion(row.id, updateForm.value)
+        ElMessage.success(`状态已成功修改为:${row.is_implemented ? '已实施' : '未实施'}`)
+
+        fetchSuggestion(filterForm.value)
+    } catch (error) {
+        // 如果用户点击了“取消”，则会进入这里
+        // ElMessageBox.confirm 会在用户取消时抛出一个错误，错误信息为 'cancel'
+        if (error === 'cancel') {
+            row.is_implemented = !row.is_implemented
+            ElMessage.info('已取消修改')
+        } else {
+            console.error('修改失败', error)
+            ElMessage.error('建议状态修改失败，请稍后重试')
+        }
+    }
+}
+
+const handleDelete = async (suggestion_id) => {
+    try {
+        // console.log(suggestion_id)
+        await ElMessageBox.confirm(
+            '此操作将永久删除该节能建议，删除后无法恢复',
+            '确认删除',
+            {
+                confirmButtonText: '确认删除',
+                cancelButtonText: '取消',
+                type: 'warning',
+            }
+        )
+        await deleteSuggestion(suggestion_id)
+        ElMessage.success('删除节能建议成功')
+        fetchSuggestion(filterForm.value)
+    } catch (error) {
+        if (error === 'cancel') {
+            ElMessage.info('已取消删除')
+        } else {
+            console.error('删除失败', error)
+            ElMessage.error('删除节能建议失败，请稍后重试')
+        }
+    }
+}
+
 onMounted(() => {
     fetchEnergyComparison({
         period: 'monthly',
@@ -501,9 +780,12 @@ onMounted(() => {
     fetchEnergyTrendData()
     // fetchAnomalyMonths()
     if (currentUserId.value === userId.value){
+        console.log('测试用户缓存')
         anomalyMonthsData.value = elecAnomalyMonthsData.value
         suggestionData.value = elecSuggestionData.value
     }
+
+    fetchSuggestion(filterForm.value)
 })
 </script>
 
@@ -660,6 +942,11 @@ onMounted(() => {
     border: 1px solid #FECACA;
     border-radius: 5px;
     padding: 10px;
+    transition: box-shadow 0.3s ease;
+}
+
+.suggestion-item-high:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .suggestion-item-medium {
@@ -669,6 +956,11 @@ onMounted(() => {
     border: 1px solid #FEF08A;
     border-radius: 5px;
     padding: 10px;
+    transition: box-shadow 0.3s ease;
+}
+
+.suggestion-item-medium:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .suggestion-item-low {
@@ -678,6 +970,11 @@ onMounted(() => {
     border: 1px solid #a8c7a9;
     border-radius: 5px;
     padding: 10px;
+    transition: box-shadow 0.3s ease;
+}
+
+.suggestion-item-low:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .suggestion-content {
@@ -691,5 +988,17 @@ onMounted(() => {
 
 .suggestion-rating {
     margin-right: 20px;
+}
+
+.table-pagination {
+    margin-top: 10px;
+}
+</style>
+
+<style>
+.el-select-dropdown__item {
+  margin: initial !important;
+  padding: 0 20px !important;
+  line-height: 34px !important;
 }
 </style>
